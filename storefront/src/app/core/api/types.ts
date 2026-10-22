@@ -42,7 +42,18 @@ export interface Product {
   published_at: string | null;
 }
 
-export type ProductSort = 'newest' | 'price_asc' | 'price_desc' | 'name';
+/** API default: `relevance` with `search`, `newest` otherwise. */
+export type ProductSort = 'relevance' | 'newest' | 'price_asc' | 'price_desc' | 'name';
+
+/**
+ * `meta.facets` of GET /products, only present with `search`. Disjunctive:
+ * category counts ignore the category filter, the price range ignores the
+ * price filter.
+ */
+export interface ProductFacets {
+  categories: { slug: string; name: string; count: number }[];
+  price: { min: Money; max: Money } | null;
+}
 
 export interface ProductFilters {
   search?: string;
@@ -157,6 +168,9 @@ export interface Paginated<T> {
   links: { first: string | null; last: string | null; prev: string | null; next: string | null };
   meta: PaginationMeta;
 }
+
+/** GET /products */
+export type ProductPage = Paginated<Product> & { meta: { facets?: ProductFacets } };
 
 export interface Single<T> {
   data: T;

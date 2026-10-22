@@ -1,0 +1,46 @@
+<header class="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur">
+  <div
+    class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:h-16 sm:flex-nowrap sm:py-0"
+  >
+    <a routerLink="/" class="text-lg font-bold tracking-tight text-zinc-900">
+      Loja<span class="text-emerald-600">Demo</span>
+    </a>
+
+    <nav class="hidden items-center gap-4 md:flex" aria-label="Categorias">
+      @for (category of categories(); track category.id) {
+        <a
+          [routerLink]="['/products']"
+          [queryParams]="{ category: category.slug }"
+          routerLinkActive="text-emerald-700"
+          class="text-sm text-zinc-600 hover:text-zinc-900"
+        >
+          {{ category.name }}
+        </a>
+      }
+    </nav>
+
+    <div class="order-last w-full sm:order-none sm:ml-auto sm:w-80">
+      <!-- SSR renders the real search box; its JS (autocomplete) loads when the browser is idle. -->
+      @defer (on idle; hydrate on idle) {
+        <app-header-search />
+      } @placeholder {
+        <div class="relative" aria-hidden="true">
+          <span
+            class="material-symbols-outlined pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-[1.25rem] text-zinc-400"
+            >search</span
+          >
+          <div
+            class="rounded-md border border-zinc-300 bg-white py-1.5 pl-9 pr-3 text-sm text-zinc-500"
+          >
+            Buscar produtos…
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Cart badge is wired in PROMPT 02 (CartStore). -->
+    <a mat-icon-button routerLink="/cart" aria-label="Carrinho" class="ml-auto sm:ml-0">
+      <mat-icon>shopping_bag</mat-icon>
+    </a>
+  </div>
+</header>

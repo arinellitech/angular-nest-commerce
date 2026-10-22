@@ -1,0 +1,83 @@
+<form role="search" (submit)="submitSearch($event)">
+  <label class="sr-only" for="header-search">Buscar produtos</label>
+  <div class="relative">
+    <span
+      class="material-symbols-outlined pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-[1.25rem] text-zinc-400"
+      aria-hidden="true"
+      >search</span
+    >
+    <input
+      #box
+      id="header-search"
+      type="search"
+      name="search"
+      placeholder="Buscar produtos…"
+      autocomplete="off"
+      enterkeyhint="search"
+      spellcheck="false"
+      [value]="term()"
+      (input)="onInput(box.value)"
+      [matAutocomplete]="suggestionsPanel"
+      class="w-full rounded-md border border-zinc-300 bg-white py-1.5 pl-9 pr-3 text-sm placeholder:text-zinc-500 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+    />
+  </div>
+
+  <mat-autocomplete
+    #suggestionsPanel="matAutocomplete"
+    class="header-suggestions"
+    [displayWith]="displayWith"
+    (optionSelected)="onSelect($event)"
+  >
+    @if (items().length) {
+      @for (product of items(); track product.id) {
+        <mat-option [value]="product">
+          <span class="flex items-center gap-3 py-1">
+            <span class="size-10 shrink-0 overflow-hidden rounded bg-zinc-100">
+              @if (product.images?.[0]; as image) {
+                <img
+                  [ngSrc]="image.url"
+                  alt=""
+                  width="40"
+                  height="40"
+                  class="size-full object-cover"
+                />
+              }
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm text-zinc-900">{{ product.name }}</span>
+              <span class="block text-xs text-zinc-500">
+                {{ product.price.formatted }}
+                @if (product.category) {
+                  · {{ product.category.name }}
+                }
+              </span>
+            </span>
+          </span>
+        </mat-option>
+      }
+      <mat-option [value]="seeAll" class="see-all">
+        <span class="text-sm font-medium text-emerald-700">
+          @if (total() > items().length) {
+            Ver todos os {{ total() }} resultados
+          } @else {
+            Ver resultados para “{{ query() }}”
+          }
+        </span>
+      </mat-option>
+    } @else if (searching()) {
+      <mat-option disabled>
+        <span class="text-sm text-zinc-500">Buscando…</span>
+      </mat-option>
+    } @else if (query() && suggestions.error()) {
+      <mat-option disabled>
+        <span class="text-sm text-zinc-500"
+          >Sugestões indisponíveis. Pressione Enter para buscar.</span
+        >
+      </mat-option>
+    } @else if (query() && suggestions.hasValue()) {
+      <mat-option disabled>
+        <span class="text-sm text-zinc-500">Nenhum produto para “{{ query() }}”</span>
+      </mat-option>
+    }
+  </mat-autocomplete>
+</form>

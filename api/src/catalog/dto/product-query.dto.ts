@@ -12,12 +12,21 @@ import {
 } from 'class-validator';
 
 export const PRODUCT_SORTS = [
+  'relevance',
   'newest',
   'price_asc',
   'price_desc',
   'name',
 ] as const;
 export type ProductSort = (typeof PRODUCT_SORTS)[number];
+
+/** `relevance` when searching, `newest` when browsing. */
+export function resolveSort(query: {
+  search?: string;
+  sort?: ProductSort;
+}): ProductSort {
+  return query.sort ?? (query.search ? 'relevance' : 'newest');
+}
 
 export class ProductQueryDto {
   @ApiPropertyOptional({ maxLength: 120 })
@@ -54,10 +63,13 @@ export class ProductQueryDto {
   @IsBoolean()
   in_stock?: boolean;
 
-  @ApiPropertyOptional({ enum: PRODUCT_SORTS, default: 'newest' })
+  @ApiPropertyOptional({
+    enum: PRODUCT_SORTS,
+    description: 'Default: `relevance` with `search`, `newest` otherwise',
+  })
   @IsOptional()
   @IsIn(PRODUCT_SORTS)
-  sort: ProductSort = 'newest';
+  sort?: ProductSort;
 
   @ApiPropertyOptional({ minimum: 1, default: 1 })
   @IsOptional()

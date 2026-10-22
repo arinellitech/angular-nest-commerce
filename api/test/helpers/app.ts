@@ -2,23 +2,40 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/app.setup.js';
+import { CatalogService } from '../../src/catalog/catalog.service.js';
 import { DRIZZLE, type Database } from '../../src/database/database.module.js';
+import { SearchClient } from '../../src/search/search-client.js';
+import { InMemorySearchClient } from './in-memory-search.client.js';
 
 /**
  * Boots the real application on an in-memory PGlite database with all
- * migrations applied. Each test file gets its own isolated database.
+ * migrations applied. Each test file gets its own isolated database and its
+ * own in-memory search index (no Meilisearch needed).
  * Environment (DATABASE_DRIVER=pglite etc.) comes from vitest.config.e2e.ts.
  */
 export async function createTestApp(): Promise<{
   app: INestApplication;
   db: Database;
+  search: InMemorySearchClient;
+  /** Rebuilds the search index from the database, like `npm run search:reindex`. */
+  reindex: () => Promise<number>;
 }> {
+  const search = new InMemorySearchClient();
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(SearchClient)
+    .useValue(search)
+    .compile();
   const app = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
 
-  return { app, db: app.get<Database>(DRIZZLE) };
+  const catalog = app.get(CatalogService);
+  return {
+    app,
+    db: app.get<Database>(DRIZZLE),
+    search,
+    reindex: () => catalog.reindexSearch(),
+  };
 }

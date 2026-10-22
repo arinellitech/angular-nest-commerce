@@ -1,105 +1,70 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { categoriesResource, productsResource } from '../../core/api/catalog.api';
-import type { ProductFilters, ProductSort } from '../../core/api/types';
+import type { ProductFilters, ProductPage, ProductSort } from '../../core/api/types';
 import { ProductCard } from '../../shared/ui/product-card';
+import { CatalogFilters, type FilterPatch } from './catalog-filters';
+import { CatalogFiltersSheet, type CatalogFiltersSheetData } from './catalog-filters-sheet';
+import {
+  categoryOptions,
+  filterChips,
+  parseCents,
+  type CatalogFiltersState,
+} from './catalog-filters.model';
+
+type QueryPatch = Partial<Record<keyof ProductFilters, string | number | boolean | undefined>>;
+
+const SORT_OPTIONS: { label: string; value: ProductSort; searchOnly?: boolean }[] = [
+  { label: 'Relevância', value: 'relevance', searchOnly: true },
+  { label: 'Mais recentes', value: 'newest' },
+  { label: 'Menor preço', value: 'price_asc' },
+  { label: 'Maior preço', value: 'price_desc' },
+  { label: 'Nome', value: 'name' },
+];
 
 /**
  * Filters live in the URL (query params bound to inputs via
- * withComponentInputBinding) so results are shareable and cacheable.
+ * withComponentInputBinding) so results are shareable and cacheable. With a
+ * search the API returns facets, which drive the category list and price hint.
  */
 @Component({
   selector: 'app-product-list',
   imports: [
+    MatButtonModule,
     MatFormFieldModule,
+    MatIconModule,
     MatSelectModule,
-    MatCheckboxModule,
     MatPaginatorModule,
     ProductCard,
+    CatalogFilters,
   ],
-  template: `
-    <div class="mx-auto max-w-7xl px-4 py-10">
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-semibold">{{ title() }}</h1>
-          @if (products.value(); as page) {
-            <p class="text-sm text-zinc-500">{{ page.meta.total }} resultados</p>
-          }
-        </div>
-
-        <div class="flex items-center gap-4">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-48">
-            <mat-label>Ordenar</mat-label>
-            <mat-select [value]="filters().sort" (selectionChange)="update({ sort: $event.value })">
-              @for (option of sortOptions; track option.value) {
-                <mat-option [value]="option.value">{{ option.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-checkbox
-            [checked]="!!filters().in_stock"
-            (change)="update({ in_stock: $event.checked || undefined })"
-          >
-            Só em estoque
-          </mat-checkbox>
-        </div>
-      </div>
-
-      @if (products.isLoading() && !products.hasValue()) {
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" aria-busy="true">
-          @for (n of skeletons; track n) {
-            <div class="aspect-square animate-pulse rounded-lg bg-zinc-100"></div>
-          }
-        </div>
-      } @else if (products.error()) {
-        <p class="rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-800">
-          Não foi possível carregar o catálogo. Tente novamente.
-        </p>
-      } @else if (products.value()?.data?.length) {
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          @for (product of products.value()!.data; track product.id) {
-            <app-product-card [product]="product" />
-          }
-        </div>
-
-        @if (products.value()!.meta.last_page > 1) {
-          <mat-paginator
-            class="mt-10"
-            [length]="products.value()!.meta.total"
-            [pageSize]="products.value()!.meta.per_page"
-            [pageIndex]="products.value()!.meta.current_page - 1"
-            [hidePageSize]="true"
-            (page)="onPage($event)"
-            aria-label="Paginação"
-          />
-        }
-      } @else {
-        <div class="rounded-md border border-zinc-200 p-8 text-center">
-          <h2 class="font-medium">Nenhum produto encontrado</h2>
-          <p class="text-sm text-zinc-500">Tente outra busca ou remova os filtros.</p>
-        </div>
-      }
-    </div>
-  `,
+  templateUrl: './product-list.html',
 })
 export class ProductList {
   private readonly router = inject(Router);
+  private readonly bottomSheet = inject(MatBottomSheet);
 
   // Query params → inputs (withComponentInputBinding). Strings because they come from the URL.
   readonly search = input<string>();
   readonly category = input<string>();
   readonly sort = input<ProductSort>();
+  readonly min_price = input<string>();
+  readonly max_price = input<string>();
   readonly in_stock = input<string>();
   readonly page = input<string>();
 
   readonly filters = computed<ProductFilters>(() => ({
-    search: this.search() || undefined,
+    search: this.search()?.trim() || undefined,
     category: this.category() || undefined,
-    sort: this.sort() ?? 'newest',
+    sort: this.sort(),
+    min_price: parseCents(this.min_price()),
+    max_price: parseCents(this.max_price()),
     in_stock: this.in_stock() === '1' ? true : undefined,
     page: this.page() ? Number(this.page()) : undefined,
     per_page: 24,
@@ -108,36 +73,103 @@ export class ProductList {
   readonly products = productsResource(() => this.filters());
   private readonly categoriesRes = categoriesResource();
 
-  readonly title = computed(() => {
+  /** Last loaded page, kept while the next one loads so the grid and facets don't flash. */
+  readonly result = linkedSignal<{ page?: ProductPage; loading: boolean }, ProductPage | undefined>(
+    {
+      source: () => ({
+        page: this.products.hasValue() ? this.products.value() : undefined,
+        loading: this.products.isLoading(),
+      }),
+      computation: ({ page, loading }, previous) => page ?? (loading ? previous?.value : undefined),
+    },
+  );
+
+  private readonly tree = computed(() => this.categoriesRes.value().data);
+
+  readonly categoryName = computed(() => {
     const slug = this.filters().category;
-    const name = this.categoriesRes
-      .value()
-      .data.flatMap((c) => [c, ...(c.children ?? [])])
+    return this.tree()
+      .flatMap((c) => [c, ...(c.children ?? [])])
       .find((c) => c.slug === slug)?.name;
-    if (name) return name;
-    return this.filters().search ? `Busca: ${this.filters().search}` : 'Produtos';
   });
 
-  readonly sortOptions: { label: string; value: ProductSort }[] = [
-    { label: 'Mais recentes', value: 'newest' },
-    { label: 'Menor preço', value: 'price_asc' },
-    { label: 'Maior preço', value: 'price_desc' },
-    { label: 'Nome', value: 'name' },
-  ];
-  readonly skeletons = [1, 2, 3, 4, 5, 6, 7, 8];
+  readonly title = computed(() => {
+    const search = this.filters().search;
+    if (search) return `Resultados para “${search}”`;
+    return this.categoryName() ?? 'Produtos';
+  });
 
-  update(patch: Record<string, string | boolean | number | undefined>): void {
+  readonly resultsLabel = computed(() => {
+    const total = this.result()?.meta.total;
+    if (total === undefined) return '';
+    return total === 1 ? '1 produto' : `${total} produtos`;
+  });
+
+  readonly sortOptions = computed(() =>
+    SORT_OPTIONS.filter((o) => !o.searchOnly || this.filters().search),
+  );
+
+  /** Mirrors the API default so the select never shows an empty value. */
+  readonly effectiveSort = computed<ProductSort>(() => {
+    const { sort, search } = this.filters();
+    if (sort && (sort !== 'relevance' || search)) return sort;
+    return search ? 'relevance' : 'newest';
+  });
+
+  readonly filtersState = computed<CatalogFiltersState>(() => {
+    const filters = this.filters();
+    const facets = this.result()?.meta.facets;
+    return {
+      categories: categoryOptions(this.tree(), facets, filters.category),
+      category: filters.category,
+      priceBounds: facets?.price ?? null,
+      minPrice: filters.min_price,
+      maxPrice: filters.max_price,
+      inStock: !!filters.in_stock,
+    };
+  });
+
+  readonly chips = computed(() => filterChips(this.filters(), this.categoryName()));
+  /** Badge on the mobile "Filtros" button: the search term is not a panel filter. */
+  readonly panelFilterCount = computed(
+    () => this.chips().filter((chip) => !('search' in chip.patch)).length,
+  );
+
+  readonly skeletons = [1, 2, 3, 4, 5, 6];
+
+  update(patch: QueryPatch | FilterPatch): void {
     const queryParams: Record<string, string | number | undefined> = { page: undefined };
     for (const [key, value] of Object.entries(patch)) {
       queryParams[key] = value === true ? '1' : value === false ? undefined : value;
     }
-    void this.router.navigate([], { queryParams, queryParamsHandling: 'merge' });
+    void this.router.navigate(['/products'], { queryParams, queryParamsHandling: 'merge' });
+  }
+
+  clearAll(): void {
+    this.update({
+      search: undefined,
+      category: undefined,
+      min_price: undefined,
+      max_price: undefined,
+      in_stock: undefined,
+    });
   }
 
   onPage(event: PageEvent): void {
-    void this.router.navigate([], {
+    void this.router.navigate(['/products'], {
       queryParams: { page: event.pageIndex + 1 },
       queryParamsHandling: 'merge',
+    });
+  }
+
+  openFilters(): void {
+    this.bottomSheet.open<CatalogFiltersSheet, CatalogFiltersSheetData>(CatalogFiltersSheet, {
+      ariaLabel: 'Filtros',
+      data: {
+        state: this.filtersState,
+        total: computed(() => this.result()?.meta.total),
+        change: (patch) => this.update(patch),
+      },
     });
   }
 }

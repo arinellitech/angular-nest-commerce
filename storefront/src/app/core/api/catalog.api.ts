@@ -1,5 +1,5 @@
 import { httpResource } from '@angular/common/http';
-import type { Category, Paginated, Product, ProductFilters, Single } from './types';
+import type { Category, Product, ProductFilters, ProductPage, Single } from './types';
 
 /** Drop empty values so URLs (and the transfer cache keys) stay clean and shareable. */
 export function cleanParams(filters: ProductFilters): Record<string, string> {
@@ -23,10 +23,20 @@ export function categoriesResource() {
 }
 
 export function productsResource(filters: () => ProductFilters) {
-  return httpResource<Paginated<Product>>(() => ({
+  return httpResource<ProductPage>(() => ({
     url: '/api/v1/products',
     params: cleanParams(filters()),
   }));
+}
+
+/** Header autocomplete: first results for a term; idle while the term is empty. */
+export function productSuggestionsResource(term: () => string | undefined, limit = 5) {
+  return httpResource<ProductPage>(() => {
+    const value = term();
+    return value
+      ? { url: '/api/v1/products', params: { search: value, per_page: String(limit) } }
+      : undefined;
+  });
 }
 
 export function productResource(slug: () => string | undefined) {

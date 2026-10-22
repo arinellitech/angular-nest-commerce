@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { slugify } from '../common/slug.js';
+import { loadEnv, reindexCatalog } from '../search/search.cli.js';
 import * as schema from './schema.js';
 
 const url =
@@ -35,6 +36,7 @@ try {
 
   let position = 0;
   let skuCounter = 10000;
+  const categoryIds = new Map<string, number>();
 
   for (const [parentName, children] of Object.entries(tree)) {
     const [parent] = await db
@@ -56,6 +58,7 @@ try {
           position: position++,
         })
         .returning();
+      categoryIds.set(child!.slug, child!.id);
 
       for (let i = 0; i < 6; i++) {
         const name = `${faker.commerce.productAdjective()} ${childName.split(' ')[0]} ${faker.string.alpha({ length: 3, casing: 'upper' })}`;
@@ -92,6 +95,58 @@ try {
         );
       }
     }
+  }
+
+  // Hand-written products with real names, for search demos ("teclado mecanico").
+  const showcase: (Omit<typeof schema.products.$inferInsert, 'categoryId'> & {
+    category: string;
+  })[] = [
+    {
+      category: 'teclados',
+      name: 'Teclado Mecânico RGB',
+      slug: 'teclado-mecanico-rgb',
+      sku: 'SHOW-0001',
+      priceCents: 34990,
+      description: 'Teclado mecânico ABNT2 com switches táteis e iluminação RGB.',
+      specs: { switch: 'Gateron Brown', layout: 'ABNT2' },
+    },
+    {
+      category: 'teclados',
+      name: 'Teclado Mecânico Compacto 60%',
+      slug: 'teclado-mecanico-compacto-60',
+      sku: 'SHOW-0002',
+      priceCents: 27990,
+      description: 'Formato 60% sem fio, ideal para mesas pequenas.',
+      specs: { switch: 'Outemu Red', layout: 'ANSI' },
+    },
+    {
+      category: 'fones-de-ouvido',
+      name: 'Fone de Ouvido Bluetooth com Cancelamento de Ruído',
+      slug: 'fone-bluetooth-cancelamento-de-ruido',
+      sku: 'SHOW-0003',
+      priceCents: 59990,
+      description: 'Cancelamento ativo de ruído e 30 horas de bateria.',
+      specs: { bateria: '30h', conexao: 'Bluetooth 5.3' },
+    },
+  ];
+  for (const { category, ...values } of showcase) {
+    const [product] = await db
+      .insert(schema.products)
+      .values({
+        ...values,
+        categoryId: categoryIds.get(category)!,
+        publishedAt: new Date(),
+      })
+      .returning();
+    await db
+      .insert(schema.inventory)
+      .values({ productId: product!.id, quantity: 15, reserved: 0 });
+    await db.insert(schema.productImages).values({
+      productId: product!.id,
+      path: `https://picsum.photos/seed/${values.slug}/800/800`,
+      alt: values.name,
+      position: 0,
+    });
   }
 
   // Edge cases for the storefront.
@@ -145,6 +200,17 @@ try {
     .onConflictDoNothing();
 
   console.log('Seed complete.');
+
+  // The catalog works without Meilisearch (SQL fallback), so a missing
+  // server only warns instead of failing `npm run setup`.
+  try {
+    const indexed = await reindexCatalog(db, loadEnv());
+    console.log(`Search index rebuilt: ${indexed} products.`);
+  } catch (error) {
+    console.warn(
+      `Search index not rebuilt (${error instanceof Error ? error.message : String(error)}). Start Meilisearch and run: npm run search:reindex`,
+    );
+  }
 } finally {
   await pool.end();
 }

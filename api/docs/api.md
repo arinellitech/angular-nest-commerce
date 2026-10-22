@@ -10,10 +10,29 @@ Errors: `{ message, errors?: { field: [..] } }` with 404 / 422 / 401 / 409 / 429
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET | `/health` | DB check; 200 ok / 503 degraded |
-| GET | `/categories` | active root categories + children, `products_count` |
+| GET | `/categories` | active root categories + children, `products_count` (includes subcategories) |
 | GET | `/categories/{slug}` | |
-| GET | `/products` | query: `search, category, min_price, max_price, in_stock, sort(newest|price_asc|price_desc|name), page, per_page(<=60)` |
+| GET | `/products` | query: `search, category, min_price, max_price (cents), in_stock, sort(relevance\|newest\|price_asc\|price_desc\|name), page, per_page(<=60)`. `category` includes its subcategories. Default sort: `relevance` with `search`, `newest` otherwise. With `search`: Meilisearch + `meta.facets` (see below) |
 | GET | `/products/{slug}` | 404 unless active + published |
+
+### Search (PROMPT 01)
+
+`GET /products?search=…` queries the Meilisearch index `products` (typo tolerance, accents ignored, every word must match) and hydrates the hits from Postgres in ranking order, so price, stock and visibility always come from the database. Without `search` the endpoint is a plain SQL query. If Meilisearch is unreachable the API logs a warning and answers from SQL (`ILIKE`, no facets) instead of failing.
+
+`meta.facets` (only with `search`) is disjunctive: category counts ignore the `category` filter and the price range ignores `min_price`/`max_price`, so the storefront can offer the alternatives.
+
+```json
+"meta": {
+  "current_page": 1, "from": 1, "last_page": 1, "per_page": 24, "to": 2, "total": 2,
+  "facets": {
+    "categories": [{ "slug": "teclados", "name": "Teclados", "count": 2 }],
+    "price": { "min": { "amount": 27990, "currency": "BRL", "formatted": "R$ 279,90" },
+               "max": { "amount": 34990, "currency": "BRL", "formatted": "R$ 349,90" } }
+  }
+}
+```
+
+Index maintenance: `npm run search:configure` (settings), `npm run search:reindex` (full rebuild, the index keeps serving meanwhile; also run by `db:seed`). Every catalog write must call `CatalogService.syncSearchIndex(ids)`. Until it does, hits are still re-filtered by visibility, price and stock in Postgres (stale ones are dropped and subtracted from `total`); only facet counts may lag. Only published + active products are indexed; a product scheduled for the future enters the index on the next reindex/sync after its `published_at`.
 
 ## Planned (see /PROMPTS.md)
 
@@ -50,4 +69,6 @@ interface Product {
 }
 interface Category { id: number; name: string; slug: string; description: string | null; position: number; products_count?: number; children?: Category[] }
 interface ProductImage { id: number; url: string; alt: string | null; position: number }
+interface ProductFacets { categories: { slug: string; name: string; count: number }[]; price: { min: Money; max: Money } | null }
+type ProductPage = Paginated<Product> & { meta: { facets?: ProductFacets } }  // GET /products
 ```

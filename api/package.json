@@ -24,8 +24,10 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrate.ts",
-    "db:seed": "tsx src/database/seed.ts",
+    "db:seed": "tsx --env-file-if-exists=.env src/database/seed.ts",
     "db:studio": "drizzle-kit studio",
+    "search:configure": "tsx --env-file-if-exists=.env src/search/configure.ts",
+    "search:reindex": "tsx --env-file-if-exists=.env src/search/reindex.ts",
     "setup": "npm install && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
@@ -38,6 +40,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.4",
+    "meilisearch": "^0.62.0",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

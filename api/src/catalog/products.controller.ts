@@ -12,7 +12,10 @@ export class ProductsController {
   @Get()
   @ApiOkResponse({
     description:
-      'Paginated published products. Envelope: { data, links, meta }.',
+      'Paginated published products. Envelope: { data, links, meta }. ' +
+      'With `search`: Meilisearch (typo tolerant, default sort `relevance`) and ' +
+      '`meta.facets` = { categories: [{ slug, name, count }], price: { min, max } | null }, ' +
+      'disjunctive (each facet ignores its own filter). `category` includes subcategories.',
   })
   index(@Query() query: ProductQueryDto, @Req() request: Request) {
     const baseUrl = `${request.protocol}://${request.get('host')}${request.path}`;

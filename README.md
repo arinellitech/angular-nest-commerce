@@ -42,6 +42,8 @@ cd storefront && npm run lint:fix && npm run typecheck && npm test && npm run bu
 
 `npm run test:e2e` na API sobe a aplicação real num **PGlite** (Postgres em WASM, em memória) com as migrations aplicadas — sem Docker. Os 29 testes da API e os 4 do storefront passam no starter.
 
+Busca: o `npm run setup` (seed) já configura e popula o índice `products` do Meilisearch. Depois de alterar o catálogo direto no banco, rode `npm run search:reindex` (ou `search:configure` só para as settings). Com o Meilisearch fora do ar a API responde a busca via SQL, sem facets. Os e2e usam um índice em memória, então continuam sem Docker.
+
 ## Estrutura
 
 ```
@@ -107,7 +109,7 @@ Variáveis opcionais para os MCPs remotos (exporte antes de abrir o `claude`): `
 | --- | --- | --- |
 | — | Starter: schema, catálogo, contrato, SSR, Claude Code | ✅ |
 | 00 | Setup + skills do Angular + primeiro commit | ✅ |
-| 01 | Busca Meilisearch com facets | ⬜ |
+| 01 | Busca Meilisearch com facets | ✅ |
 | 02 | Carrinho (API + SignalStore + página) | ⬜ |
 | 03 | Checkout idempotente com reserva de estoque | ⬜ |
 | 04 | Pagamentos, webhooks idempotentes, filas, expiração | ⬜ |

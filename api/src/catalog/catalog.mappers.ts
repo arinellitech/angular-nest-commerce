@@ -41,6 +41,12 @@ export interface ProductResource {
   published_at: string | null;
 }
 
+/** `meta.facets` of GET /products when `search` is present. */
+export interface ProductFacetsResource {
+  categories: { slug: string; name: string; count: number }[];
+  price: { min: Money; max: Money } | null;
+}
+
 export type ProductWithRelations = Product & {
   category?: Category | null;
   images?: ProductImage[];
@@ -73,6 +79,28 @@ export function toCategoryResource(
   if (category.children)
     resource.children = category.children.map((c) => toCategoryResource(c));
   return resource;
+}
+
+export function toFacetsResource(
+  facets: {
+    categories: Record<string, number>;
+    price: { min: number; max: number } | null;
+  },
+  categoryNames: Map<string, string>,
+  currency: string,
+): ProductFacetsResource {
+  return {
+    categories: Object.entries(facets.categories)
+      .filter(([slug, count]) => count > 0 && categoryNames.has(slug))
+      .map(([slug, count]) => ({ slug, name: categoryNames.get(slug)!, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+    price: facets.price
+      ? {
+          min: toMoney(facets.price.min, currency),
+          max: toMoney(facets.price.max, currency),
+        }
+      : null,
+  };
 }
 
 export function availableQuantity(

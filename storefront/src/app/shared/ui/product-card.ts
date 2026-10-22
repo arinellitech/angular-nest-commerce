@@ -16,10 +16,11 @@ import { PriceTag } from './price-tag';
         @if (image(); as img) {
           <img
             [ngSrc]="img.url"
+            [priority]="priority()"
             [alt]="img.alt ?? product().name"
             width="600"
             height="600"
-            sizes="(max-width: 640px) 50vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         } @else {
@@ -47,5 +48,7 @@ import { PriceTag } from './price-tag';
 })
 export class ProductCard {
   readonly product = input.required<Product>();
+  /** First row of a grid: the LCP candidate, preloaded by NgOptimizedImage. */
+  readonly priority = input(false);
   readonly image = computed(() => this.product().images?.[0]);
 }

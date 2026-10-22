@@ -5,6 +5,76 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
+/*
+ * Material 3 system tokens re-pointed at the storefront's own type and accent.
+ * The prebuilt theme ships Roboto (not loaded, so controls fell back to a
+ * serif) and an azure primary that clashed with the emerald brand.
+ */
+html {
+  --mat-sys-body-large: 400 1rem / 1.5rem var(--font-sans);
+  --mat-sys-body-large-font: var(--font-sans);
+  --mat-sys-body-medium: 400 0.875rem / 1.25rem var(--font-sans);
+  --mat-sys-body-medium-font: var(--font-sans);
+  --mat-sys-body-small: 400 0.75rem / 1rem var(--font-sans);
+  --mat-sys-body-small-font: var(--font-sans);
+  --mat-sys-display-large: 400 3.562rem / 4rem var(--font-sans);
+  --mat-sys-display-large-font: var(--font-sans);
+  --mat-sys-display-medium: 400 2.812rem / 3.25rem var(--font-sans);
+  --mat-sys-display-medium-font: var(--font-sans);
+  --mat-sys-display-small: 400 2.25rem / 2.75rem var(--font-sans);
+  --mat-sys-display-small-font: var(--font-sans);
+  --mat-sys-headline-large: 400 2rem / 2.5rem var(--font-sans);
+  --mat-sys-headline-large-font: var(--font-sans);
+  --mat-sys-headline-medium: 400 1.75rem / 2.25rem var(--font-sans);
+  --mat-sys-headline-medium-font: var(--font-sans);
+  --mat-sys-headline-small: 400 1.5rem / 2rem var(--font-sans);
+  --mat-sys-headline-small-font: var(--font-sans);
+  --mat-sys-label-large: 500 0.875rem / 1.25rem var(--font-sans);
+  --mat-sys-label-large-font: var(--font-sans);
+  --mat-sys-label-medium: 500 0.75rem / 1rem var(--font-sans);
+  --mat-sys-label-medium-font: var(--font-sans);
+  --mat-sys-label-small: 500 0.688rem / 1rem var(--font-sans);
+  --mat-sys-label-small-font: var(--font-sans);
+  --mat-sys-title-large: 400 1.375rem / 1.75rem var(--font-sans);
+  --mat-sys-title-large-font: var(--font-sans);
+  --mat-sys-title-medium: 500 1rem / 1.5rem var(--font-sans);
+  --mat-sys-title-medium-font: var(--font-sans);
+  --mat-sys-title-small: 500 0.875rem / 1.25rem var(--font-sans);
+  --mat-sys-title-small-font: var(--font-sans);
+
+  /* Tailwind emerald 700 / 100 / 900 / 300 */
+  --mat-sys-primary: #047857;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #d1fae5;
+  --mat-sys-on-primary-container: #064e3b;
+  --mat-sys-primary-fixed: #d1fae5;
+  --mat-sys-primary-fixed-dim: #6ee7b7;
+  --mat-sys-on-primary-fixed: #022c22;
+  --mat-sys-on-primary-fixed-variant: #064e3b;
+  --mat-sys-inverse-primary: #6ee7b7;
+  --mat-sys-surface-tint: #047857;
+
+  /* Neutral surfaces: white + Tailwind zinc instead of the azure-tinted greys. */
+  --mat-sys-background: #ffffff;
+  --mat-sys-surface: #ffffff;
+  --mat-sys-surface-bright: #ffffff;
+  --mat-sys-surface-container-lowest: #ffffff;
+  --mat-sys-surface-container-low: #ffffff;
+  --mat-sys-surface-container: #fafafa;
+  --mat-sys-surface-container-high: #f4f4f5;
+  --mat-sys-surface-container-highest: #e4e4e7;
+  --mat-sys-on-background: #18181b;
+  --mat-sys-on-surface: #18181b;
+  --mat-sys-on-surface-variant: #52525b;
+  --mat-sys-outline: #71717a;
+  --mat-sys-outline-variant: #d4d4d8;
+}
+
+/* Taller than Material's 256px so all five suggestions and "ver todos" fit. */
+div.mat-mdc-autocomplete-panel.header-suggestions {
+  max-height: min(28rem, 70vh);
+}
+
 html,
 body {
   height: 100%;
@@ -13,6 +83,22 @@ body {
 body {
   margin: 0;
   font-family: var(--font-sans);
+  caret-color: #047857;
+}
+
+::selection {
+  background: #d1fae5;
+  color: #064e3b;
+}
+
+:where(a, button, summary, [role='button']):focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
+/* Header autocomplete renders in an overlay, outside the component's styles. */
+.header-suggestions .see-all {
+  border-top: 1px solid #e4e4e7;
 }
 
 /* Material Symbols (icon font linked in index.html) */

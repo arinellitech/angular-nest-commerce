@@ -47,7 +47,7 @@ import { ProductCard } from '../../shared/ui/product-card';
       } @else {
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           @for (product of newest.value()?.data; track product.id) {
-            <app-product-card [product]="product" />
+            <app-product-card [product]="product" [priority]="$index < 4" />
           }
         </div>
       }

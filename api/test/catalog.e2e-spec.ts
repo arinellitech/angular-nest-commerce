@@ -8,9 +8,10 @@ describe('catalog', () => {
   let app: INestApplication;
   let db: Database;
   let make: ReturnType<typeof factories>;
+  let reindex: () => Promise<number>;
 
   beforeAll(async () => {
-    ({ app, db } = await createTestApp());
+    ({ app, db, reindex } = await createTestApp());
     make = factories(db);
   });
 
@@ -44,6 +45,8 @@ describe('catalog', () => {
       );
       expect(eletronicos.children[0].slug).toBe('fones');
       expect(eletronicos.children[0].products_count).toBe(1);
+      // Parent counts include their subcategories.
+      expect(eletronicos.products_count).toBe(1);
     });
 
     it('returns 404 for an unknown category', async () => {
@@ -63,6 +66,7 @@ describe('catalog', () => {
       });
       await make.product({ slug: 'nao-publicado', publishedAt: null });
       await make.product({ slug: 'inativo', isActive: false });
+      await reindex();
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/products?search=Fone X')
@@ -137,6 +141,7 @@ describe('catalog', () => {
         priceCents: 12000,
       });
       await make.product({ name: 'Mouse', slug: 'mouse', priceCents: 9000 });
+      await reindex();
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/products?search=teclado&sort=price_asc')
@@ -146,6 +151,41 @@ describe('catalog', () => {
         'teclado-compacto',
         'teclado-azul',
       ]);
+    });
+
+    it('includes subcategories when filtering by a parent category', async () => {
+      const parent = await make.category({ slug: 'casa' });
+      const kitchen = await make.category({
+        parentId: parent.id,
+        slug: 'cozinha',
+      });
+      const decor = await make.category({
+        parentId: parent.id,
+        slug: 'decoracao',
+      });
+      await make.product({
+        categoryId: kitchen.id,
+        name: 'Panela',
+        slug: 'panela',
+      });
+      await make.product({
+        categoryId: decor.id,
+        name: 'Vaso',
+        slug: 'vaso',
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/products?category=casa&sort=name')
+        .expect(200);
+      expect(res.body.data.map((p: { slug: string }) => p.slug)).toEqual([
+        'panela',
+        'vaso',
+      ]);
+
+      const unknown = await request(app.getHttpServer())
+        .get('/api/v1/products?category=nao-existe')
+        .expect(200);
+      expect(unknown.body.meta.total).toBe(0);
     });
 
     it('paginates with links and meta', async () => {
