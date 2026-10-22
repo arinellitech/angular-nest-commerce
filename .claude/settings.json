@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch(domain:angular.dev)",
+      "WebFetch(domain:material.angular.dev)",
+      "WebFetch(domain:material.angular.io)",
+      "WebFetch(domain:ngrx.io)",
+      "WebFetch(domain:docs.nestjs.com)",
+      "WebFetch(domain:orm.drizzle.team)",
+      "WebFetch(domain:pglite.dev)",
+      "WebFetch(domain:tailwindcss.com)",
+      "WebFetch(domain:vitest.dev)",
+      "WebFetch(domain:playwright.dev)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:fly.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.asaas.com)",
+      "WebFetch(domain:docs.pagar.me)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(ng *)",
+      "Bash(nest *)",
+      "Bash(docker compose *)",
+      "Bash(docker *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(git restore *)",
+      "Bash(git init *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh run *)",
+      "Bash(curl *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(sed *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(jq *)",
+      "Bash(psql *)",
+      "Bash(vercel *)",
+      "Bash(fly *)",
+      "Bash(supabase *)",
+      "mcp__angular-cli__*",
+      "mcp__supabase__*",
+      "mcp__vercel__*",
+      "mcp__context7__*"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git rebase *)",
+      "Bash(vercel --prod *)",
+      "Bash(vercel deploy --prod *)",
+      "Bash(fly deploy *)",
+      "Bash(npm run db:reset *)",
+      "Bash(npx drizzle-kit push *)",
+      "Bash(npx drizzle-kit drop *)",
+      "Bash(docker compose down -v *)",
+      "Bash(supabase db reset *)",
+      "Bash(supabase db push *)"
+    ],
+    "deny": [
+      "Read(./api/.env)",
+      "Read(./api/.env.*)",
+      "Read(./storefront/.env)",
+      "Read(./storefront/.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Edit(./api/.env)",
+      "Edit(./storefront/.env)",
+      "Bash(sudo *)"
+    ]
+  },
+  "env": {
+    "FORCE_COLOR": "0",
+    "NG_CLI_ANALYTICS": "false",
+    "CI": "1"
+  },
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/format.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

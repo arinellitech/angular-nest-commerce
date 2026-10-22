@@ -1,0 +1,21 @@
+# Claude Code — personal overrides and local state
+.claude/settings.local.json
+CLAUDE.local.md
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.log
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Node (each app has its own .gitignore too)
+node_modules
+dist
+.angular
+coverage

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (NestJS 12 · Node 24 · PGlite + Postgres 17)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: commerce_test
+          POSTGRES_USER: commerce
+          POSTGRES_PASSWORD: commerce
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U commerce"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: E2E (PGlite, in-memory)
+        run: npm run test:e2e
+      - name: Migrations apply on real Postgres 17
+        env:
+          DATABASE_URL: postgres://commerce:commerce@127.0.0.1:5432/commerce_test
+        run: npm run db:migrate
+      - name: Build
+        run: npm run build
+
+  storefront:
+    name: Storefront (Angular 22 · Node 24)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: storefront
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build (SSR)
+        run: npm run build

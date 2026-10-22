@@ -1,0 +1,4 @@
+# LF everywhere (matches .editorconfig and Prettier), even when Git for Windows
+# sets core.autocrlf=true: CRLF breaks the bash hooks in .claude/hooks and
+# makes `prettier --check` fail.
+* text=auto eol=lf
