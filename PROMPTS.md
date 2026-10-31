@@ -4,6 +4,8 @@ Cole um prompt por vez, na ordem. Cada prompt termina com `/ship`, que roda os q
 
 Como abrir: `cd angular-nest-commerce && claude` (ver README → "Claude Code" para o modo automático).
 
+Modelo/esforço: cada prompt traz uma linha `> Modelo: … · esforço: …` sugerida. Troque com `/model` antes de colar o prompt (o padrão global é Opus 5.5 em `high`; `xhigh` exige escolher no `/model`).
+
 Convenção dos prompts: **Objetivo → Escopo → Critérios de aceite**. O Claude Code já conhece as regras (`CLAUDE.md`, `storefront/CLAUDE.md`, `.claude/rules/*`), então os prompts falam só do *que* fazer.
 
 ---
@@ -47,6 +49,8 @@ Finalize com /ship 01 "busca com meilisearch".
 
 ## PROMPT 02 — Carrinho (API + SignalStore + página)
 
+> Modelo: **Sonnet 5.5** · esforço: **high** — CRUD + SignalStore no padrão do 01.
+
 ```
 Objetivo: carrinho de convidado persistido na API, identificado pelo header X-Cart-Token, com cupons.
 
@@ -70,6 +74,8 @@ Finalize com /ship 02 "carrinho".
 
 ## PROMPT 03 — Checkout idempotente com reserva de estoque
 
+> Modelo: **Opus 5.5** · esforço: **xhigh** — concorrência, FOR UPDATE e idempotência.
+
 ```
 Objetivo: POST /api/v1/checkout transforma o carrinho em pedido, reserva estoque de forma atômica e cria a cobrança (provider mock), com idempotência pelo header Idempotency-Key.
 
@@ -91,6 +97,8 @@ Finalize com /ship 03 "checkout idempotente + reserva de estoque".
 ```
 
 ## PROMPT 04 — Pagamentos, webhooks idempotentes, filas e expiração
+
+> Modelo: **Opus 5.5** · esforço: **xhigh** — máquina de estados, redelivery de webhook, expiração.
 
 ```
 Objetivo: fechar o ciclo pagamento → confirmação → baixa de estoque, com webhooks seguros, processamento em fila e expiração automática.
@@ -116,6 +124,8 @@ Finalize com /ship 04 "pagamentos + webhooks + filas + expiração".
 
 ## PROMPT 05 — Autenticação de clientes (JWT) e área do cliente
 
+> Modelo: **Opus 5.5** · esforço: **high** — segurança.
+
 ```
 Objetivo: cadastro/login com JWT (access + refresh), histórico de pedidos e merge do carrinho de convidado.
 
@@ -137,6 +147,8 @@ Finalize com /ship 05 "auth jwt + área do cliente".
 
 ## PROMPT 06 — Painel admin (segundo app Angular) e imagens no Supabase Storage
 
+> Modelo: **Sonnet 5.5** · esforço: **high** — muito boilerplate de UI.
+
 ```
 Objetivo: administração do catálogo e dos pedidos num segundo app Angular no mesmo workspace, e imagens reais em object storage.
 
@@ -154,6 +166,8 @@ Finalize com /ship 06 "admin angular + supabase storage".
 ```
 
 ## PROMPT 07 — E2E (Playwright), acessibilidade e hardening
+
+> Modelo: **Sonnet 5.5** · esforço: **high** — hardening pode subir para Opus high.
 
 ```
 Objetivo: prova de que o fluxo inteiro funciona de ponta a ponta e que a API aguenta produção.
@@ -175,6 +189,8 @@ Finalize com /ship 07 "e2e + a11y + hardening".
 
 ## PROMPT 08 — Deploy: Supabase + Vercel + Fly.io
 
+> Modelo: **Opus 5.5** · esforço: **high** — ações externas difíceis de desfazer.
+
 ```
 Objetivo: colocar a demo no ar com o mesmo código, sem gambiarra de ambiente.
 
@@ -191,6 +207,8 @@ Finalize com /ship 08 "deploy supabase + vercel + fly".
 
 ## PROMPT 09 — PSP real: adapter Asaas (sandbox) com feature flag
 
+> Modelo: **Opus 5.5** · esforço: **high** — integração com PSP, dinheiro.
+
 ```
 Objetivo: trocar o mock por um PSP brasileiro real sem tocar no checkout.
 
@@ -205,6 +223,8 @@ Finalize com /ship 09 "asaas sandbox adapter".
 ```
 
 ## PROMPT 10 — Polimento de portfólio
+
+> Modelo: **Sonnet 5.5** · esforço: **medium** — docs e README.
 
 ```
 Objetivo: fazer o repositório contar a história certa para quem avalia Angular + Node/NestJS.
