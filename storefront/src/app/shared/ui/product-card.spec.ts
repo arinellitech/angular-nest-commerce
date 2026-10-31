@@ -40,4 +40,17 @@ describe('ProductCard', () => {
       '/products/fone-x',
     );
   });
+
+  it('nudges when stock is low and hides the nudge otherwise', async () => {
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput('product', { ...product, in_stock: true, available_quantity: 3 });
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Só restam 3 em estoque');
+    expect(el.textContent).not.toContain('Esgotado');
+
+    fixture.componentRef.setInput('product', { ...product, in_stock: true, available_quantity: 40 });
+    await fixture.whenStable();
+    expect(el.textContent).not.toContain('em estoque');
+  });
 });

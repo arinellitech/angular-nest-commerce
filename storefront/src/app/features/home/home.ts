@@ -35,9 +35,16 @@ import { ProductCard } from '../../shared/ui/product-card';
       </div>
 
       @if (newest.isLoading()) {
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" aria-busy="true">
+        <div class="grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-3 sm:gap-x-3 lg:grid-cols-4" aria-busy="true">
           @for (n of skeletons; track n) {
-            <div class="aspect-square animate-pulse rounded-lg bg-zinc-100"></div>
+            <div class="p-2">
+              <div class="aspect-square animate-pulse rounded-lg bg-zinc-100"></div>
+              <div class="space-y-2 px-1.5 pt-3">
+                <div class="h-4 w-11/12 animate-pulse rounded bg-zinc-100"></div>
+                <div class="h-4 w-2/3 animate-pulse rounded bg-zinc-100"></div>
+                <div class="h-7 mt-4! w-1/2 animate-pulse rounded bg-zinc-100"></div>
+              </div>
+            </div>
           }
         </div>
       } @else if (newest.error()) {
@@ -45,7 +52,7 @@ import { ProductCard } from '../../shared/ui/product-card';
           Não foi possível carregar os produtos agora.
         </p>
       } @else {
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div class="grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-3 sm:gap-x-3 lg:grid-cols-4">
           @for (product of newest.value()?.data; track product.id) {
             <app-product-card [product]="product" [priority]="$index < 4" />
           }

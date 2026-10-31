@@ -135,7 +135,7 @@ export class ProductList {
     () => this.chips().filter((chip) => !('search' in chip.patch)).length,
   );
 
-  readonly skeletons = [1, 2, 3, 4, 5, 6];
+  readonly skeletons = [1, 2, 3, 4, 5, 6, 7, 8];
 
   update(patch: QueryPatch | FilterPatch): void {
     const queryParams: Record<string, string | number | undefined> = { page: undefined };
