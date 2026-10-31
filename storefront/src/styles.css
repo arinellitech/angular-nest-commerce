@@ -71,6 +71,12 @@ html {
   --mat-sys-outline-variant: #d4d4d8;
 }
 
+/* Cart badge in the brand accent (Material's default is the error red). */
+html {
+  --mat-badge-background-color: var(--mat-sys-primary);
+  --mat-badge-text-color: var(--mat-sys-on-primary);
+}
+
 /* Taller than Material's 256px so all five suggestions and "ver todos" fit. */
 div.mat-mdc-autocomplete-panel.header-suggestions {
   max-height: min(28rem, 70vh);

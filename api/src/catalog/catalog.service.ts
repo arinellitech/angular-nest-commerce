@@ -11,7 +11,6 @@ import {
   gte,
   ilike,
   inArray,
-  isNotNull,
   isNull,
   lte,
   or,
@@ -22,6 +21,7 @@ import { paginate, type Paginated } from '../common/pagination.js';
 import type { Env } from '../config/env.js';
 import { DRIZZLE, type Database } from '../database/database.module.js';
 import { categories, inventory, products } from '../database/schema.js';
+import { publishedWhere } from './published.js';
 import type { ProductSearchResult } from '../search/search-client.js';
 import { SearchService } from '../search/search.service.js';
 import {
@@ -62,13 +62,7 @@ export class CatalogService {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  /** Products visible on the storefront. */
-  private readonly publishedWhere = and(
-    eq(products.isActive, true),
-    isNotNull(products.publishedAt),
-    lte(products.publishedAt, sql`now()`),
-    isNull(products.deletedAt),
-  );
+  private readonly publishedWhere = publishedWhere;
 
   private readonly productRelations = {
     category: true as const,

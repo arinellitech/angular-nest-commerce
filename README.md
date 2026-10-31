@@ -110,7 +110,7 @@ Variáveis opcionais para os MCPs remotos (exporte antes de abrir o `claude`): `
 | — | Starter: schema, catálogo, contrato, SSR, Claude Code | ✅ |
 | 00 | Setup + skills do Angular + primeiro commit | ✅ |
 | 01 | Busca Meilisearch com facets | ✅ |
-| 02 | Carrinho (API + SignalStore + página) | ⬜ |
+| 02 | Carrinho (API + SignalStore + página) | ✅ |
 | 03 | Checkout idempotente com reserva de estoque | ⬜ |
 | 04 | Pagamentos, webhooks idempotentes, filas, expiração | ⬜ |
 | 05 | Auth JWT + área do cliente | ⬜ |

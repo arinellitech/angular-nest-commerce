@@ -1,17 +1,30 @@
-import { Component } from '@angular/core';
+import { Component, afterNextRender, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { CartLine } from './cart-line';
+import { CartStore } from './cart.store';
+import { CartSummary } from './cart-summary';
 
-/** Placeholder — PROMPT 02 replaces this with the real cart (CartStore + items + coupon). */
+/** Client-rendered (cookie-dependent, see app.routes.server.ts). */
 @Component({
   selector: 'app-cart-page',
-  imports: [RouterLink, MatButtonModule],
-  template: `
-    <div class="mx-auto max-w-3xl px-4 py-16 text-center">
-      <h1 class="text-2xl font-semibold">Seu carrinho</h1>
-      <p class="mt-2 text-zinc-500">O carrinho é implementado no PROMPT 02 (PROMPTS.md).</p>
-      <a mat-stroked-button routerLink="/products" class="mt-8">Continuar comprando</a>
-    </div>
-  `,
+  imports: [RouterLink, MatButtonModule, MatIconModule, CartLine, CartSummary],
+  templateUrl: './cart-page.html',
 })
-export class CartPage {}
+export class CartPage {
+  protected readonly store = inject(CartStore);
+
+  constructor() {
+    // Always revalidate on entry: stock and prices may have moved since the last visit.
+    afterNextRender(() => void this.store.refresh());
+  }
+
+  protected async changeQuantity(itemId: number, quantity: number): Promise<void> {
+    await this.store.updateQuantity(itemId, quantity);
+  }
+
+  protected async remove(itemId: number): Promise<void> {
+    await this.store.removeItem(itemId);
+  }
+}

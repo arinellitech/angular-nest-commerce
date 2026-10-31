@@ -1,5 +1,6 @@
 import {
   couponDiscount,
+  couponRejection,
   isCouponRedeemable,
   type CouponLike,
 } from './coupon.rules.js';
@@ -41,5 +42,22 @@ describe('coupon rules', () => {
         5000,
       ),
     ).toBe(false);
+  });
+});
+
+describe('couponRejection', () => {
+  it('names the reason a coupon cannot be used', () => {
+    expect(couponRejection(base, 5000)).toBeNull();
+    expect(couponRejection(base, 100)).toBe('below_minimum');
+    expect(couponRejection({ ...base, isActive: false }, 5000)).toBe(
+      'inactive',
+    );
+    expect(couponRejection({ ...base, uses: 1 }, 5000)).toBe('exhausted');
+    expect(
+      couponRejection({ ...base, endsAt: new Date(Date.now() - 1000) }, 5000),
+    ).toBe('expired');
+    expect(
+      couponRejection({ ...base, startsAt: new Date(Date.now() + 1000) }, 5000),
+    ).toBe('not_started');
   });
 });

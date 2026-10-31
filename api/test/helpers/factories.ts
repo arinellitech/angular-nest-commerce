@@ -1,16 +1,19 @@
 import type { Database } from '../../src/database/database.module.js';
 import {
   categories,
+  coupons,
   inventory,
   productImages,
   products,
   type Category,
+  type Coupon,
   type Product,
 } from '../../src/database/schema.js';
 
 let seq = 0;
 const next = () => ++seq;
 
+type CouponInput = Partial<typeof coupons.$inferInsert>;
 type CategoryInput = Partial<typeof categories.$inferInsert>;
 type ProductInput = Partial<typeof products.$inferInsert> & {
   stock?: number;
@@ -28,6 +31,21 @@ export function factories(db: Database) {
           name: `Categoria ${n}`,
           slug: `categoria-${n}`,
           position: n,
+          ...input,
+        })
+        .returning();
+      return row!;
+    },
+
+    async coupon(input: CouponInput = {}): Promise<Coupon> {
+      const n = next();
+      const [row] = await db
+        .insert(coupons)
+        .values({
+          code: `CUPOM${n}`,
+          type: 'percent',
+          value: 10,
+          minSubtotalCents: 5000,
           ...input,
         })
         .returning();

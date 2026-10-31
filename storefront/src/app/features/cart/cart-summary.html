@@ -1,0 +1,100 @@
+<section
+  aria-labelledby="summary-title"
+  class="rounded-lg border border-zinc-200 bg-zinc-50 p-5 sm:p-6"
+>
+  <h2 id="summary-title" class="text-lg font-semibold text-zinc-900">Resumo do pedido</h2>
+
+  <dl class="mt-5 space-y-3 text-sm">
+    <div class="flex justify-between gap-4">
+      <dt class="text-zinc-600">Subtotal</dt>
+      <dd class="text-zinc-900 tabular-nums" data-testid="subtotal">
+        {{ cart().subtotal.formatted }}
+      </dd>
+    </div>
+    @if (cart().coupon; as coupon) {
+      <div class="flex justify-between gap-4">
+        <dt class="text-zinc-600">Desconto ({{ coupon.code }})</dt>
+        <dd class="text-emerald-800 tabular-nums" data-testid="discount">
+          − {{ coupon.discount.formatted }}
+        </dd>
+      </div>
+    }
+    <div class="flex justify-between gap-4">
+      <dt class="text-zinc-600">Frete</dt>
+      <dd class="text-zinc-900 tabular-nums" data-testid="shipping">
+        {{ cart().shipping.amount === 0 ? 'Grátis' : cart().shipping.formatted }}
+      </dd>
+    </div>
+  </dl>
+
+  <div class="mt-5 flex items-baseline justify-between gap-4 border-t border-zinc-200 pt-5">
+    <span class="font-medium text-zinc-900">Total</span>
+    <span
+      class="text-2xl font-semibold tracking-tight text-zinc-900 tabular-nums"
+      data-testid="total"
+    >
+      {{ cart().total.formatted }}
+    </span>
+  </div>
+
+  <div class="mt-6 border-t border-zinc-200 pt-5">
+    @if (cart().coupon; as coupon) {
+      <div
+        class="flex items-center justify-between gap-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+      >
+        <span class="flex items-center gap-2">
+          <mat-icon class="text-emerald-700">sell</mat-icon>
+          Cupom <strong>{{ coupon.code }}</strong> aplicado
+        </span>
+        <button
+          type="button"
+          class="rounded px-2 py-1 font-medium underline underline-offset-2 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-emerald-700 disabled:opacity-50"
+          [disabled]="store.busy()"
+          (click)="removeCoupon()"
+        >
+          Remover
+        </button>
+      </div>
+    } @else {
+      <form (submit)="$event.preventDefault(); applyCoupon()" novalidate>
+        <label for="coupon-code" class="block text-sm font-medium text-zinc-900">
+          Cupom de desconto
+        </label>
+        <div class="mt-2 flex gap-2">
+          <input
+            id="coupon-code"
+            type="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            class="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm uppercase placeholder:normal-case placeholder:text-zinc-500 focus:outline-2 focus:outline-offset-0 focus:outline-emerald-700"
+            [class.border-zinc-300]="!codeMessage()"
+            [class.border-rose-600]="codeMessage()"
+            [attr.aria-invalid]="codeMessage() ? true : null"
+            [attr.aria-describedby]="codeMessage() ? 'coupon-error' : null"
+            placeholder="Digite o código"
+            [formField]="couponForm.code"
+            (input)="serverMessage.set('')"
+          />
+          <button mat-stroked-button type="submit" [disabled]="store.busy()">Aplicar</button>
+        </div>
+        @if (codeMessage(); as message) {
+          <p id="coupon-error" class="mt-2 text-sm text-rose-700" role="alert">{{ message }}</p>
+        }
+      </form>
+    }
+  </div>
+
+  <a mat-flat-button routerLink="/checkout" class="mt-6 w-full" [disabled]="blocked()">
+    Finalizar compra
+  </a>
+  @if (blocked()) {
+    <p class="mt-3 text-sm text-zinc-600">Resolva os itens sem estoque para continuar.</p>
+  }
+  <a
+    routerLink="/products"
+    class="mt-4 block text-center text-sm text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
+  >
+    Continuar comprando
+  </a>
+</section>

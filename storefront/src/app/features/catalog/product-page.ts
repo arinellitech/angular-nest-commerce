@@ -10,16 +10,25 @@ import {
   untracked,
 } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { productResource } from '../../core/api/catalog.api';
 import { PriceTag } from '../../shared/ui/price-tag';
+import { QuantityStepper } from '../../shared/ui/quantity-stepper';
+import { CartStore } from '../cart/cart.store';
 
 @Component({
   selector: 'app-product-page',
-  imports: [RouterLink, NgOptimizedImage, MatButtonModule, MatIconModule, PriceTag],
+  imports: [
+    RouterLink,
+    NgOptimizedImage,
+    MatButtonModule,
+    MatIconModule,
+    PriceTag,
+    QuantityStepper,
+  ],
   template: `
     <div class="mx-auto max-w-7xl px-4 py-10">
       @if (resource.isLoading() && !resource.hasValue()) {
@@ -108,23 +117,32 @@ import { PriceTag } from '../../shared/ui/price-tag';
 
             <p class="mt-6 whitespace-pre-line text-zinc-600">{{ product.description }}</p>
 
-            <div class="mt-8 flex items-center gap-3">
-              <label class="sr-only" for="quantity">Quantidade</label>
-              <input
-                id="quantity"
-                type="number"
-                min="1"
-                [max]="product.available_quantity ?? 99"
-                [value]="quantity()"
-                (input)="quantity.set(+$any($event.target).value || 1)"
-                [disabled]="product.in_stock === false"
-                class="w-24 rounded-md border border-zinc-300 px-3 py-2"
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <app-quantity-stepper
+                [quantity]="quantity()"
+                [max]="product.available_quantity ?? undefined"
+                [disabled]="product.in_stock === false || cart.busy()"
+                (quantityChange)="quantity.set($event); addError.set('')"
               />
-              <button mat-flat-button [disabled]="product.in_stock === false" (click)="addToCart()">
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="product.in_stock === false || cart.busy()"
+                (click)="addToCart(product.id)"
+              >
                 <mat-icon>shopping_bag</mat-icon>
-                {{ product.in_stock === false ? 'Esgotado' : 'Adicionar ao carrinho' }}
+                {{
+                  product.in_stock === false
+                    ? 'Esgotado'
+                    : cart.busy()
+                      ? 'Adicionando…'
+                      : 'Adicionar ao carrinho'
+                }}
               </button>
             </div>
+            @if (addError(); as message) {
+              <p class="mt-3 text-sm text-rose-700" role="alert">{{ message }}</p>
+            }
 
             @if (product.in_stock && (product.available_quantity ?? 0) <= 5) {
               <p class="mt-3 text-sm text-amber-700">
@@ -142,6 +160,8 @@ export class ProductPage {
   private readonly meta = inject(Meta);
   private readonly document = inject(DOCUMENT);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  protected readonly cart = inject(CartStore);
   /** Server only: lets the SSR response carry a real 404 status for unknown slugs. */
   private readonly responseInit = inject(RESPONSE_INIT, { optional: true });
 
@@ -157,6 +177,8 @@ export class ProductPage {
 
   readonly selectedImage = signal(0);
   readonly quantity = signal(1);
+  /** Why the last add failed (stock, unavailable), shown next to the button. */
+  readonly addError = signal('');
 
   constructor() {
     effect(() => {
@@ -195,11 +217,19 @@ export class ProductPage {
     });
   }
 
-  // PROMPT 02 replaces this with inject(CartStore).addItem(product, quantity).
-  addToCart(): void {
-    this.snackBar.open('Carrinho ainda não implementado — rode o PROMPT 02.', 'OK', {
-      duration: 4000,
-    });
+  async addToCart(productId: number): Promise<void> {
+    this.addError.set('');
+    const result = await this.cart.addItem(productId, this.quantity());
+    if (!result.ok) {
+      const { errors, message } = result.error;
+      this.addError.set(errors['quantity'] ?? errors['product_id'] ?? message);
+      return;
+    }
+    this.quantity.set(1);
+    this.snackBar
+      .open('Adicionado ao carrinho', 'Ver carrinho', { duration: 5000 })
+      .onAction()
+      .subscribe(() => void this.router.navigateByUrl('/cart'));
   }
 
   private injectJsonLd(data: Record<string, unknown>): void {

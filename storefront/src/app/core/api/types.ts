@@ -66,14 +66,18 @@ export interface ProductFilters {
   per_page?: number;
 }
 
-// Cart / checkout / orders — implemented by PROMPTS 02-05.
+// Cart (PROMPT 02) / checkout / orders (PROMPTS 03-05).
 
 export interface CartItem {
   id: number;
+  /** `images` holds at most the first image. */
   product: Pick<Product, 'id' | 'name' | 'slug' | 'images'>;
   quantity: number;
+  /** Price snapshot from when the line was added/changed; checkout re-validates it. */
   unit_price: Money;
   total: Money;
+  /** Units still purchasable right now; 0 when the product left the catalog. */
+  available_quantity: number;
 }
 
 export interface Cart {

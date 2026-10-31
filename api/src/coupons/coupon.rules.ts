@@ -14,18 +14,40 @@ export interface CouponLike {
   isActive: boolean;
 }
 
+export const CouponRejection = {
+  Inactive: 'inactive',
+  NotStarted: 'not_started',
+  Expired: 'expired',
+  Exhausted: 'exhausted',
+  BelowMinimum: 'below_minimum',
+} as const;
+export type CouponRejection =
+  (typeof CouponRejection)[keyof typeof CouponRejection];
+
+/** Why a coupon cannot be used for this subtotal, or `null` when it can. */
+export function couponRejection(
+  coupon: CouponLike,
+  subtotalCents: number,
+  at: Date = new Date(),
+): CouponRejection | null {
+  if (!coupon.isActive) return CouponRejection.Inactive;
+  if (coupon.startsAt !== null && coupon.startsAt > at)
+    return CouponRejection.NotStarted;
+  if (coupon.endsAt !== null && coupon.endsAt < at)
+    return CouponRejection.Expired;
+  if (coupon.maxUses !== null && coupon.uses >= coupon.maxUses)
+    return CouponRejection.Exhausted;
+  if (subtotalCents < coupon.minSubtotalCents)
+    return CouponRejection.BelowMinimum;
+  return null;
+}
+
 export function isCouponRedeemable(
   coupon: CouponLike,
   subtotalCents: number,
   at: Date = new Date(),
 ): boolean {
-  return (
-    coupon.isActive &&
-    (coupon.startsAt === null || coupon.startsAt <= at) &&
-    (coupon.endsAt === null || coupon.endsAt >= at) &&
-    (coupon.maxUses === null || coupon.uses < coupon.maxUses) &&
-    subtotalCents >= coupon.minSubtotalCents
-  );
+  return couponRejection(coupon, subtotalCents, at) === null;
 }
 
 export function couponDiscount(

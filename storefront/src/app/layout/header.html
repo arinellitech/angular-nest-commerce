@@ -38,9 +38,23 @@
       }
     </div>
 
-    <!-- Cart badge is wired in PROMPT 02 (CartStore). -->
-    <a mat-icon-button routerLink="/cart" aria-label="Carrinho" class="ml-auto sm:ml-0">
-      <mat-icon>shopping_bag</mat-icon>
+    <a
+      mat-icon-button
+      routerLink="/cart"
+      class="ml-auto sm:ml-0"
+      [attr.aria-label]="
+        cart.count() > 0
+          ? 'Carrinho, ' + cart.count() + (cart.count() === 1 ? ' item' : ' itens')
+          : 'Carrinho'
+      "
+    >
+      <mat-icon
+        aria-hidden="true"
+        [matBadge]="cart.count()"
+        [matBadgeHidden]="cart.count() === 0"
+        matBadgeOverlap="true"
+        >shopping_bag</mat-icon
+      >
     </a>
   </div>
 </header>

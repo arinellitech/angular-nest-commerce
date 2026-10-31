@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { CartModule } from './cart/cart.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { validateEnv } from './config/env.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -19,7 +20,7 @@ import { PaymentsModule } from './payments/payments.module.js';
     DatabaseModule,
     PaymentsModule,
     CatalogModule,
-    // CartModule      → PROMPT 02
+    CartModule,
     // CheckoutModule  → PROMPT 03
     // WebhooksModule  → PROMPT 04
     // AuthModule      → PROMPT 05

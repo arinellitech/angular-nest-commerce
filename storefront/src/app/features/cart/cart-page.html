@@ -1,0 +1,74 @@
+<div class="mx-auto max-w-7xl px-4 py-10">
+  <h1 class="text-3xl font-semibold tracking-tight text-zinc-900">Seu carrinho</h1>
+
+  @if (store.status() === 'idle' || (store.status() === 'loading' && !store.cart())) {
+    <div
+      class="mt-8 grid gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_24rem]"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span class="sr-only">Carregando seu carrinho…</span>
+      <div class="space-y-5">
+        @for (row of [1, 2]; track row) {
+          <div class="flex gap-4">
+            <div class="size-24 animate-pulse rounded-md bg-zinc-100"></div>
+            <div class="flex-1 space-y-3 pt-1">
+              <div class="h-4 w-2/3 animate-pulse rounded bg-zinc-100"></div>
+              <div class="h-4 w-1/4 animate-pulse rounded bg-zinc-100"></div>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="h-72 animate-pulse rounded-lg bg-zinc-100"></div>
+    </div>
+  } @else if (store.status() === 'error' && !store.cart()) {
+    <div class="mx-auto mt-16 max-w-md text-center" role="alert">
+      <mat-icon class="text-rose-700">cloud_off</mat-icon>
+      <h2 class="mt-2 text-xl font-semibold text-zinc-900">Não conseguimos carregar o carrinho</h2>
+      <p class="mt-2 text-zinc-600">
+        Seus itens estão salvos. Verifique a conexão e tente de novo.
+      </p>
+      <button mat-flat-button type="button" class="mt-6" (click)="store.refresh()">
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (store.cart(); as cart) {
+    @if (store.isEmpty()) {
+      <div class="mx-auto mt-16 max-w-md text-center">
+        <mat-icon class="text-zinc-500">shopping_bag</mat-icon>
+        <h2 class="mt-2 text-xl font-semibold text-zinc-900">Seu carrinho está vazio</h2>
+        <p class="mt-2 text-zinc-600">Os produtos que você adicionar aparecem aqui.</p>
+        <a mat-flat-button routerLink="/products" class="mt-6">Ver produtos</a>
+      </div>
+    } @else {
+      <div
+        class="mt-8 grid items-start gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_24rem]"
+      >
+        <section aria-label="Itens do carrinho">
+          <p class="text-sm text-zinc-600" aria-live="polite">
+            {{ store.count() }} {{ store.count() === 1 ? 'item' : 'itens' }}
+          </p>
+          <ul class="mt-2 divide-y divide-zinc-200 border-y border-zinc-200">
+            @for (item of cart.items; track item.id) {
+              <li>
+                <app-cart-line
+                  [item]="item"
+                  [busy]="store.busy()"
+                  [error]="store.lineErrors()[item.id]"
+                  (quantityChange)="changeQuantity(item.id, $event)"
+                  (remove)="remove(item.id)"
+                />
+              </li>
+            }
+          </ul>
+        </section>
+
+        <app-cart-summary
+          [cart]="cart"
+          [blocked]="store.hasStockIssues()"
+          class="lg:sticky lg:top-24"
+        />
+      </div>
+    }
+  }
+</div>

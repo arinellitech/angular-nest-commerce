@@ -34,16 +34,54 @@ Errors: `{ message, errors?: { field: [..] } }` with 404 / 422 / 401 / 409 / 429
 
 Index maintenance: `npm run search:configure` (settings), `npm run search:reindex` (full rebuild, the index keeps serving meanwhile; also run by `db:seed`). Every catalog write must call `CatalogService.syncSearchIndex(ids)`. Until it does, hits are still re-filtered by visibility, price and stock in Postgres (stale ones are dropped and subtracted from `total`); only facet counts may lag. Only published + active products are indexed; a product scheduled for the future enters the index on the next reindex/sync after its `published_at`.
 
+### Cart (PROMPT 02)
+
+A guest cart is identified by the opaque `X-Cart-Token` returned by `POST /cart` (header **and** `data.token`; the header is exposed to CORS). Every other cart route requires it and answers `404` when the token is missing, unknown, expired or already converted into an order. Each use renews `expires_at` (`CART_TTL_DAYS`, default 30). Authenticated carts arrive with PROMPT 05.
+
+| Method | Path | Success | Errors |
+| --- | --- | --- | --- |
+| POST | `/cart` | 201 new empty cart | |
+| GET | `/cart` | 200 | 404 |
+| POST | `/cart/items` `{ product_id, quantity }` | 201 cart | 404 · 422 `errors.product_id` (unknown/unpublished), `errors.quantity` (stock, max 99 per line) |
+| PATCH | `/cart/items/{id}` `{ quantity }` | 200 cart | 404 (item not in this cart) · 422 `errors.quantity` |
+| DELETE | `/cart/items/{id}` | 200 cart | 404 |
+| POST | `/cart/coupon` `{ code }` | 200 cart | 422 `errors.code` |
+| DELETE | `/cart/coupon` | 200 cart (idempotent) | 404 |
+
+Every success body is `{ data: Cart }`:
+
+```json
+{
+  "data": {
+    "id": "5f0c…", "token": "k3Jx…", "currency": "BRL", "status": "active",
+    "items": [{
+      "id": 12,
+      "product": { "id": 3, "name": "Teclado Mecânico", "slug": "teclado-mecanico",
+                   "images": [{ "id": 7, "url": "https://…", "alt": "…", "position": 0 }] },
+      "quantity": 2,
+      "unit_price": { "amount": 4000, "currency": "BRL", "formatted": "R$ 40,00" },
+      "total":      { "amount": 8000, "currency": "BRL", "formatted": "R$ 80,00" },
+      "available_quantity": 10
+    }],
+    "coupon": { "code": "BEMVINDO10", "discount": { "amount": 800, "currency": "BRL", "formatted": "R$ 8,00" } },
+    "subtotal": { "amount": 8000 }, "discount": { "amount": 800 },
+    "shipping": { "amount": 1990 }, "total": { "amount": 9190 },
+    "expires_at": "2026-11-30T12:00:00.000Z"
+  }
+}
+```
+
+Rules:
+
+- **Price snapshot**: `unit_price` is the price when the line was last added/changed (adding again or PATCH refreshes it); checkout re-validates against the live product.
+- **Stock is checked, not reserved**: a line may not exceed `quantity - reserved` (the sum with what is already in the cart counts). The reservation happens at checkout (PROMPT 03). `available_quantity` is `0` for a product that left the catalog.
+- **Totals** (integer cents): `subtotal = Σ quantity × unit_price`; `discount` from the coupon (percent rounds down, never above the subtotal); `shipping = SHIPPING_FLAT_RATE_CENTS`, free when `subtotal - discount >= SHIPPING_FREE_OVER_CENTS`, `0` for an empty cart.
+- **Coupon**: code is case-insensitive. Rejections come back as `422 { message: "Coupon not applicable.", errors: { code: ["…"] } }` (unknown/inactive, not started, expired, usage limit reached, below the minimum subtotal). A coupon whose minimum is no longer met after an item change is detached automatically. Usage (`uses`) is only counted at checkout.
+
 ## Planned (see /PROMPTS.md)
 
 | Method | Path | Prompt |
 | --- | --- | --- |
-| POST | `/cart` | 02 — creates guest cart, returns `X-Cart-Token` |
-| GET | `/cart` | 02 |
-| POST | `/cart/items` `{ product_id, quantity }` | 02 |
-| PATCH | `/cart/items/{id}` `{ quantity }` | 02 |
-| DELETE | `/cart/items/{id}` | 02 |
-| POST / DELETE | `/cart/coupon` `{ code }` | 02 |
 | POST | `/checkout` (header `Idempotency-Key`) | 03 — reserves stock, creates order + payment |
 | GET | `/orders/{number}` | 03 |
 | POST | `/webhooks/{provider}` | 04 — idempotent via `webhook_events (provider, external_id)` |
@@ -71,4 +109,5 @@ interface Category { id: number; name: string; slug: string; description: string
 interface ProductImage { id: number; url: string; alt: string | null; position: number }
 interface ProductFacets { categories: { slug: string; name: string; count: number }[]; price: { min: Money; max: Money } | null }
 type ProductPage = Paginated<Product> & { meta: { facets?: ProductFacets } }  // GET /products
+// Cart (see "Cart" above): items[].available_quantity is new in PROMPT 02
 ```
