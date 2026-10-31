@@ -8,6 +8,7 @@ Convenção dos prompts: **Objetivo → Escopo → Critérios de aceite**. O Cla
 
 ---
 
+
 ## PROMPT 00 — Setup, skills oficiais do Angular e primeiro commit
 
 ```
