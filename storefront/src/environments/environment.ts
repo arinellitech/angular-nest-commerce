@@ -7,6 +7,6 @@
 export const environment = {
   production: true,
   // Public URL of the API (prompt 08 points this at the deployed API).
-  apiBaseUrl: 'https://commerce-api.fly.dev',
+  apiBaseUrl: 'https://arinelli-commerce-api.fly.dev',
   siteName: 'Loja Demo',
 };

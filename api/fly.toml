@@ -2,7 +2,7 @@
 # fly launch --no-deploy → then:
 #   fly secrets set DATABASE_URL=postgres://...supabase...:5432/postgres DATABASE_SSL=true \
 #     CORS_ALLOWED_ORIGINS=https://sua-loja.vercel.app PAYMENT_WEBHOOK_SECRET=$(openssl rand -hex 24)
-app = "commerce-api"
+app = "arinelli-commerce-api"
 primary_region = "gru"   # São Paulo
 
 [build]
