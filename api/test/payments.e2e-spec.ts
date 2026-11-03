@@ -34,10 +34,28 @@ describe('payments module', () => {
   });
 
   it('creates a pending Pix charge with copy-paste payload and expiry', async () => {
-    const charge = await gateway.charge(fakeOrder, PaymentMethod.Pix);
+    const charge = await gateway.charge(
+      fakeOrder,
+      PaymentMethod.Pix,
+      '6c1d2a4e-0b7f-4c8e-9d3a-1f2e3d4c5b6a',
+    );
     expect(charge.providerReference).toMatch(/^mock_/);
     expect(charge.pixCopyPaste).toContain('br.gov.bcb.pix');
     expect(charge.expiresAt!.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('returns the same charge for the same idempotency key', async () => {
+    const key = '0b6f0e1e-6c2a-4c55-9b7e-2f1d8a4b9c10';
+    const first = await gateway.charge(fakeOrder, PaymentMethod.Pix, key);
+    const again = await gateway.charge(fakeOrder, PaymentMethod.Pix, key);
+    const other = await gateway.charge(
+      fakeOrder,
+      PaymentMethod.Pix,
+      '6c1d2a4e-0b7f-4c8e-9d3a-1f2e3d4c5b6a',
+    );
+    expect(again.providerReference).toBe(first.providerReference);
+    expect(again.pixCopyPaste).toBe(first.pixCopyPaste);
+    expect(other.providerReference).not.toBe(first.providerReference);
   });
 
   it('rejects webhooks with a bad secret', async () => {

@@ -15,6 +15,8 @@ export default defineConfig({
       NODE_ENV: 'test',
       DATABASE_DRIVER: 'pglite',
       PAYMENT_WEBHOOK_SECRET: 'test-webhook-secret',
+      ORDER_LINK_SECRET: 'test-order-link-secret-0123456789abcdef',
+      FRONTEND_URL: 'http://localhost:4200',
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200',
     },
     testTimeout: 30_000,

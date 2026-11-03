@@ -111,7 +111,7 @@ Variáveis opcionais para os MCPs remotos (exporte antes de abrir o `claude`): `
 | 00 | Setup + skills do Angular + primeiro commit | ✅ |
 | 01 | Busca Meilisearch com facets | ✅ |
 | 02 | Carrinho (API + SignalStore + página) | ✅ |
-| 03 | Checkout idempotente com reserva de estoque | ⬜ |
+| 03 | Checkout idempotente com reserva de estoque | ✅ |
 | 04 | Pagamentos, webhooks idempotentes, filas, expiração | ⬜ |
 | 05 | Auth JWT + área do cliente | ⬜ |
 | 06 | Admin (segundo app Angular) + Supabase Storage | ⬜ |

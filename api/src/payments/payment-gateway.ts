@@ -14,8 +14,19 @@ import type {
 export abstract class PaymentGateway {
   abstract readonly name: string;
 
-  /** Create a charge for the order. Must not persist anything — the caller does, in its transaction. */
-  abstract charge(order: Order, method: PaymentMethod): Promise<ChargeResult>;
+  /** Payment methods this provider can charge; checkout rejects the others with 422. */
+  abstract readonly methods: readonly PaymentMethod[];
+
+  /**
+   * Create a charge for the order. Must not persist anything — the caller does.
+   * `idempotencyKey` (our payment id) must be forwarded to the provider so a
+   * retried or concurrent call returns the same charge instead of a second one.
+   */
+  abstract charge(
+    order: Order,
+    method: PaymentMethod,
+    idempotencyKey: string,
+  ): Promise<ChargeResult>;
 
   /**
    * Verify the webhook signature and translate the provider payload into a

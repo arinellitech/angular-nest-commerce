@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
-import { randomUUID } from 'node:crypto';
 import { timingSafeEqual } from 'node:crypto';
 import type { Env } from '../config/env.js';
 import type { Order } from '../database/schema.js';
@@ -25,14 +24,20 @@ import {
 @Injectable()
 export class MockGateway extends PaymentGateway {
   readonly name = 'mock';
+  readonly methods = [PaymentMethod.Pix] as const;
 
   constructor(private readonly config: ConfigService<Env, true>) {
     super();
   }
 
-  async charge(order: Order, method: PaymentMethod): Promise<ChargeResult> {
+  /** Deterministic per idempotency key, like a real PSP's idempotent create. */
+  async charge(
+    order: Order,
+    method: PaymentMethod,
+    idempotencyKey: string,
+  ): Promise<ChargeResult> {
     const ttl = this.config.get('ORDER_PAYMENT_TTL_MINUTES', { infer: true });
-    const reference = `mock_${randomUUID().replace(/-/g, '')}`;
+    const reference = `mock_${idempotencyKey.replace(/-/g, '')}`;
 
     return {
       provider: this.name,
@@ -40,7 +45,7 @@ export class MockGateway extends PaymentGateway {
       providerReference: reference,
       pixCopyPaste:
         method === PaymentMethod.Pix
-          ? `00020126580014br.gov.bcb.pix0136${randomUUID()}5204000053039865802BR5913Loja Demo6009Sao Paulo62070503***6304MOCK`
+          ? `00020126580014br.gov.bcb.pix0136${idempotencyKey}5204000053039865802BR5913Loja Demo6009Sao Paulo62070503***6304MOCK`
           : null,
       pixQrCode: null, // storefront renders the copy-paste string as a QR code
       expiresAt: new Date(Date.now() + ttl * 60_000),

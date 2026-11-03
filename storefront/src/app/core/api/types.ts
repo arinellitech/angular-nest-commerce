@@ -1,6 +1,6 @@
 /**
  * Contract between the storefront and the API (api/docs/api.md).
- * Keep in sync with api/src/catalog/catalog.mappers.ts. Money is integer cents.
+ * Keep in sync with the API mappers (api/src/<context>/<context>.mappers.ts). Money is integer cents.
  */
 
 export interface Money {
@@ -66,7 +66,7 @@ export interface ProductFilters {
   per_page?: number;
 }
 
-// Cart (PROMPT 02) / checkout / orders (PROMPTS 03-05).
+// Cart (PROMPT 02).
 
 export interface CartItem {
   id: number;
@@ -94,24 +94,25 @@ export interface Cart {
   expires_at: string | null;
 }
 
+// Checkout and orders (PROMPT 03).
+
 export type OrderStatus = 'pending_payment' | 'paid' | 'fulfilled' | 'cancelled' | 'refunded';
 export type PaymentMethod = 'pix' | 'card' | 'boleto';
 export type PaymentStatus = 'pending' | 'confirmed' | 'failed' | 'refunded' | 'expired';
 
-export interface Address {
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-}
-
-export interface Customer {
-  name: string;
-  email: string;
-  document: string; // CPF/CNPJ
-  phone?: string;
+/** POST /checkout body. The API strips punctuation from CPF, phone and CEP. */
+export interface CheckoutPayload {
+  customer: { name: string; email: string; document: string; phone: string };
+  shipping_address: {
+    line1: string;
+    line2?: string;
+    city: string;
+    /** UF, e.g. "SP". */
+    state: string;
+    postal_code: string;
+    country?: 'BR';
+  };
+  payment_method: PaymentMethod;
 }
 
 export interface Payment {
@@ -120,13 +121,20 @@ export interface Payment {
   method: PaymentMethod;
   status: PaymentStatus;
   amount: Money;
+  /** Pix "copia e cola"; the order page renders it as a QR code. */
   pix_copy_paste: string | null;
+  /** Base64 PNG when the provider sends one. */
   pix_qr_code: string | null;
   expires_at: string | null;
+  confirmed_at: string | null;
 }
 
 export interface OrderItem {
   id: number;
+  /** `null` once the product is deleted; name, sku and prices are snapshots. */
+  product_id: number | null;
+  slug: string | null;
+  image: ProductImage | null;
   name: string;
   sku: string;
   quantity: number;
@@ -138,22 +146,44 @@ export interface Order {
   id: string;
   number: string;
   status: OrderStatus;
-  customer: Customer;
-  shipping_address: Address;
+  currency: string;
+  customer: {
+    name: string;
+    email: string;
+    /** Masked by the API: "***.982.247-**". */
+    document: string;
+    phone: string | null;
+  };
+  shipping_address: {
+    line1: string;
+    line2: string | null;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  };
   items: OrderItem[];
+  coupon: { code: string } | null;
   subtotal: Money;
   discount: Money;
   shipping: Money;
   total: Money;
+  /** `null` only while the payment provider has not created the charge yet. */
   payment: Payment | null;
-  placed_at: string;
+  /** Read access to this order: GET /orders/{number}?token=… (the order page URL carries it). */
+  access_token: string;
+  placed_at: string | null;
   paid_at: string | null;
+  cancelled_at: string | null;
 }
 
-export interface CheckoutPayload {
-  customer: Customer;
-  shipping_address: Address;
-  payment_method: PaymentMethod;
+/** Extra field of the 422 from POST /checkout when some lines cannot be bought. */
+export interface UnavailableLine {
+  product_id: number;
+  name: string;
+  requested: number;
+  available: number;
+  reason: 'unavailable' | 'insufficient_stock';
 }
 
 // Envelopes

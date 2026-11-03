@@ -42,7 +42,11 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - name: E2E (PGlite, in-memory)
+      - name: E2E (PGlite in-memory + checkout concurrency on Postgres 17)
+        # DATABASE_URL only enables test/checkout.concurrency.e2e-spec.ts, which
+        # creates and drops its own database; every other suite stays on PGlite.
+        env:
+          DATABASE_URL: postgres://commerce:commerce@127.0.0.1:5432/commerce_test
         run: npm run test:e2e
       - name: Migrations apply on real Postgres 17
         env:

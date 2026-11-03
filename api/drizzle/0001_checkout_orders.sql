@@ -1,0 +1,4 @@
+CREATE SEQUENCE "public"."order_number_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1;--> statement-breakpoint
+CREATE INDEX "order_items_order_idx" ON "order_items" USING btree ("order_id");--> statement-breakpoint
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_line_consistent" CHECK ("order_items"."quantity" > 0 AND "order_items"."unit_price_cents" >= 0 AND "order_items"."total_cents" = "order_items"."quantity" * "order_items"."unit_price_cents");--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_totals_consistent" CHECK ("orders"."subtotal_cents" >= 0 AND "orders"."discount_cents" >= 0 AND "orders"."discount_cents" <= "orders"."subtotal_cents" AND "orders"."shipping_cents" >= 0 AND "orders"."total_cents" = "orders"."subtotal_cents" - "orders"."discount_cents" + "orders"."shipping_cents");

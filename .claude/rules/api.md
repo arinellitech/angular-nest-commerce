@@ -25,7 +25,7 @@ paths:
 ## Testing (Vitest)
 - Unit tests next to the code (`*.spec.ts`) for pure logic; no Nest container.
 - E2E tests in `test/*.e2e-spec.ts` using `createTestApp()` (PGlite, real migrations, real pipes/filters) and `factories(db)`. Cover happy path, 422, 404 and the invariant edge case (e.g. reserving more than available → 422).
-- Environment for e2e lives in `vitest.config.e2e.ts` (`test.env`), not in test files.
+- Environment for e2e lives in `vitest.config.e2e.ts` (`test.env`), not in test files. One exception: `test/checkout.concurrency.e2e-spec.ts` switches `DATABASE_DRIVER` to `pg` with `vi.stubEnv` before importing the app, because row locks need real concurrent connections (PGlite has one).
 - `npm run lint && npm run typecheck && npm test && npm run test:e2e` must be clean before finishing.
 
 ## Security

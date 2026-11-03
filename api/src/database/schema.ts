@@ -17,6 +17,7 @@ import {
   index,
   integer,
   jsonb,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -239,6 +240,17 @@ export const cartItems = pgTable(
 // Orders & payments
 // ---------------------------------------------------------------------------
 
+/**
+ * Feeds the NNNNNN part of ORD-YYYY-NNNNNN. A sequence never hands out the
+ * same value twice, even across concurrent transactions (count() would);
+ * values used by rolled-back checkouts leave gaps, which is fine for an
+ * order reference.
+ */
+export const orderNumberSeq = pgSequence('order_number_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
 export const orders = pgTable(
   'orders',
   {
@@ -280,25 +292,39 @@ export const orders = pgTable(
     uniqueIndex('orders_idempotency_key_unique').on(t.idempotencyKey),
     index('orders_status_placed_idx').on(t.status, t.placedAt),
     index('orders_user_idx').on(t.userId),
+    check(
+      'orders_totals_consistent',
+      sql`${t.subtotalCents} >= 0 AND ${t.discountCents} >= 0 AND ${t.discountCents} <= ${t.subtotalCents} AND ${t.shippingCents} >= 0 AND ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} + ${t.shippingCents}`,
+    ),
   ],
 );
 
-export const orderItems = pgTable('order_items', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  orderId: uuid('order_id')
-    .notNull()
-    .references(() => orders.id, { onDelete: 'cascade' }),
-  productId: integer('product_id').references(() => products.id, {
-    onDelete: 'set null',
-  }),
-  // Snapshots: an order must survive product edits/deletions.
-  name: varchar('name', { length: 255 }).notNull(),
-  sku: varchar('sku', { length: 64 }).notNull(),
-  quantity: integer('quantity').notNull(),
-  unitPriceCents: bigint('unit_price_cents', { mode: 'number' }).notNull(),
-  totalCents: bigint('total_cents', { mode: 'number' }).notNull(),
-  ...timestamps,
-});
+export const orderItems = pgTable(
+  'order_items',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    productId: integer('product_id').references(() => products.id, {
+      onDelete: 'set null',
+    }),
+    // Snapshots: an order must survive product edits/deletions.
+    name: varchar('name', { length: 255 }).notNull(),
+    sku: varchar('sku', { length: 64 }).notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPriceCents: bigint('unit_price_cents', { mode: 'number' }).notNull(),
+    totalCents: bigint('total_cents', { mode: 'number' }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    index('order_items_order_idx').on(t.orderId),
+    check(
+      'order_items_line_consistent',
+      sql`${t.quantity} > 0 AND ${t.unitPriceCents} >= 0 AND ${t.totalCents} = ${t.quantity} * ${t.unitPriceCents}`,
+    ),
+  ],
+);
 
 export const payments = pgTable(
   'payments',

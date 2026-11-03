@@ -14,8 +14,8 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'products', renderMode: RenderMode.Server, headers: cached(60) },
   { path: 'products/:slug', renderMode: RenderMode.Server, headers: cached(60) },
   { path: 'cart', renderMode: RenderMode.Client },
-  { path: 'checkout/**', renderMode: RenderMode.Client },
-  { path: 'orders/**', renderMode: RenderMode.Client },
+  { path: 'checkout', renderMode: RenderMode.Client },
+  { path: 'orders/:number', renderMode: RenderMode.Client },
   { path: 'account/**', renderMode: RenderMode.Client },
   { path: '**', renderMode: RenderMode.Server, status: 404 },
 ];

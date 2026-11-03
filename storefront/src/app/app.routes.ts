@@ -15,11 +15,21 @@ export const routes: Routes = [
     path: 'products/:slug',
     loadComponent: () => import('./features/catalog/product-page').then((m) => m.ProductPage),
   },
-  // Client-only flows (no SSR, see app.routes.server.ts). Implemented by PROMPTS 02–05.
+  // Client-only flows (no SSR, see app.routes.server.ts).
   {
     path: 'cart',
     loadComponent: () => import('./features/cart/cart-page').then((m) => m.CartPage),
     title: 'Carrinho · Loja Demo',
+  },
+  {
+    path: 'checkout',
+    loadComponent: () => import('./features/checkout/checkout-page').then((m) => m.CheckoutPage),
+    title: 'Finalizar compra · Loja Demo',
+  },
+  {
+    path: 'orders/:number',
+    loadComponent: () => import('./features/orders/order-page').then((m) => m.OrderPage),
+    title: 'Pedido · Loja Demo',
   },
   {
     path: '**',

@@ -1,0 +1,449 @@
+<div class="mx-auto max-w-7xl px-4 py-10">
+  <a
+    routerLink="/cart"
+    class="inline-flex items-center gap-1 rounded text-sm leading-5 text-zinc-600 hover:text-zinc-900"
+  >
+    <mat-icon class="size-5! text-xl! leading-none!" aria-hidden="true">arrow_back</mat-icon>
+    Voltar ao carrinho
+  </a>
+  <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-900">Finalizar compra</h1>
+
+  @if (checkout.done()) {
+    <div class="mt-16 flex flex-col items-center text-center" role="status">
+      <mat-spinner diameter="40" aria-hidden="true" />
+      <p class="mt-4 font-medium text-zinc-900">Pedido confirmado. Abrindo o pagamento…</p>
+    </div>
+  } @else if (checkout.recovering()) {
+    @if (checkout.placing()) {
+      <div class="mt-16 flex flex-col items-center text-center" role="status">
+        <mat-spinner diameter="40" aria-hidden="true" />
+        <p class="mt-4 font-medium text-zinc-900">Recuperando seu pedido…</p>
+      </div>
+    } @else {
+      <div class="mx-auto mt-16 max-w-md text-center" role="alert">
+        <mat-icon class="text-amber-700" aria-hidden="true">sync_problem</mat-icon>
+        <h2 class="mt-2 text-xl font-semibold text-zinc-900">Seu pedido já foi criado</h2>
+        <p class="mt-2 text-zinc-600">{{ recoveryMessage() }} Seus itens continuam reservados.</p>
+        <button mat-flat-button type="button" class="mt-6" (click)="retryRecovery()">
+          Tentar novamente
+        </button>
+      </div>
+    }
+  } @else if (cart.status() === 'idle' || (cart.status() === 'loading' && !cart.cart())) {
+    <div
+      class="mt-8 grid items-start gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_24rem]"
+      aria-busy="true"
+    >
+      <span class="sr-only" role="status">Carregando seu pedido…</span>
+      <div class="space-y-4">
+        <div class="h-10 w-full animate-pulse rounded bg-zinc-100"></div>
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="h-14 animate-pulse rounded bg-zinc-100"></div>
+        }
+      </div>
+      <div class="h-80 animate-pulse rounded-lg bg-zinc-100"></div>
+    </div>
+  } @else if (cart.status() === 'error' && !cart.cart()) {
+    <div class="mx-auto mt-16 max-w-md text-center" role="alert">
+      <mat-icon class="text-rose-700" aria-hidden="true">cloud_off</mat-icon>
+      <h2 class="mt-2 text-xl font-semibold text-zinc-900">
+        Não conseguimos carregar seu carrinho
+      </h2>
+      <p class="mt-2 text-zinc-600">
+        Seus itens estão salvos. Verifique a conexão e tente de novo.
+      </p>
+      <button mat-flat-button type="button" class="mt-6" (click)="cart.refresh()">
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (cart.isEmpty() || !cart.cart()) {
+    <div class="mx-auto mt-16 max-w-md text-center">
+      <mat-icon class="text-zinc-500" aria-hidden="true">shopping_bag</mat-icon>
+      <h2 class="mt-2 text-xl font-semibold text-zinc-900">Não há nada para finalizar</h2>
+      <p class="mt-2 text-zinc-600">Adicione produtos ao carrinho para fazer um pedido.</p>
+      <a mat-flat-button routerLink="/products" class="mt-6">Ver produtos</a>
+    </div>
+  } @else if (cart.cart(); as currentCart) {
+    @if (cart.hasStockIssues()) {
+      <div
+        class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900"
+        role="alert"
+      >
+        <span class="flex items-center gap-2">
+          <mat-icon class="text-rose-700" aria-hidden="true">inventory_2</mat-icon>
+          Alguns itens não estão mais disponíveis na quantidade escolhida.
+        </span>
+        <a mat-stroked-button routerLink="/cart">Ajustar carrinho</a>
+      </div>
+    }
+
+    <div
+      class="mt-8 grid items-start gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_24rem]"
+    >
+      <mat-stepper
+        class="checkout-stepper"
+        [linear]="true"
+        [orientation]="orientation()"
+        aria-label="Etapas da compra"
+      >
+        <!-- 1. Customer + shipping address -->
+        <mat-step [completed]="detailsValid()">
+          <ng-template matStepLabel>Dados e entrega</ng-template>
+
+          <form novalidate class="pt-2" (submit)="$event.preventDefault(); continueFromDetails()">
+            <fieldset>
+              <legend class="text-base font-semibold text-zinc-900">Seus dados</legend>
+              <p class="mt-1 text-sm text-zinc-600">
+                Usamos o e-mail para mandar o comprovante e o link do pedido.
+              </p>
+
+              <div class="mt-5 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                <mat-form-field class="sm:col-span-2">
+                  <mat-label>Nome completo</mat-label>
+                  <input matInput [formField]="form.customer.name" autocomplete="name" />
+                  <mat-error>{{ form.customer.name().errors()[0]?.message }}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>E-mail</mat-label>
+                  <input
+                    matInput
+                    type="email"
+                    [formField]="form.customer.email"
+                    autocomplete="email"
+                    spellcheck="false"
+                  />
+                  <mat-error>{{ form.customer.email().errors()[0]?.message }}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>Celular com DDD</mat-label>
+                  <input
+                    matInput
+                    type="tel"
+                    [formField]="form.customer.phone"
+                    autocomplete="tel-national"
+                    placeholder="(11) 98765-4321"
+                  />
+                  <mat-error>{{ form.customer.phone().errors()[0]?.message }}</mat-error>
+                </mat-form-field>
+
+                <mat-form-field>
+                  <mat-label>CPF</mat-label>
+                  <input
+                    matInput
+                    inputmode="numeric"
+                    [formField]="form.customer.document"
+                    autocomplete="off"
+                    placeholder="000.000.000-00"
+                  />
+                  <mat-hint>Obrigatório para emitir a nota fiscal.</mat-hint>
+                  <mat-error>{{ form.customer.document().errors()[0]?.message }}</mat-error>
+                </mat-form-field>
+              </div>
+            </fieldset>
+
+            <div class="mt-6 border-t border-zinc-200 pt-6">
+              <fieldset>
+                <legend class="text-base font-semibold text-zinc-900">Endereço de entrega</legend>
+
+                <div class="mt-5 grid grid-cols-6 gap-x-4">
+                  <mat-form-field class="col-span-6 sm:col-span-3">
+                    <mat-label>CEP</mat-label>
+                    <input
+                      matInput
+                      inputmode="numeric"
+                      [formField]="form.address.postal_code"
+                      autocomplete="postal-code"
+                      placeholder="00000-000"
+                      aria-describedby="cep-status"
+                    />
+                    @if (cepLookup.isLoading()) {
+                      <mat-spinner matSuffix diameter="18" class="mr-3" aria-hidden="true" />
+                    }
+                    <mat-error>{{ form.address.postal_code().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+                  <p
+                    id="cep-status"
+                    class="col-span-6 mb-4 min-h-5 text-sm text-zinc-600 sm:col-span-3 sm:mt-4 sm:mb-0"
+                    aria-live="polite"
+                  >
+                    @if (cepHint(); as hint) {
+                      {{ hint }}
+                    } @else {
+                      <a
+                        href="https://buscacepinter.correios.com.br/app/endereco/index.php"
+                        target="_blank"
+                        rel="noopener"
+                        class="underline underline-offset-2 hover:text-zinc-900"
+                        >Não sei meu CEP</a
+                      >
+                    }
+                  </p>
+
+                  <mat-form-field class="col-span-6 sm:col-span-4">
+                    <mat-label>Rua</mat-label>
+                    <input
+                      matInput
+                      [formField]="form.address.street"
+                      autocomplete="address-line1"
+                    />
+                    <mat-error>{{ form.address.street().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field class="col-span-3 sm:col-span-2">
+                    <mat-label>Número</mat-label>
+                    <input
+                      matInput
+                      [formField]="form.address.number"
+                      autocomplete="off"
+                      placeholder="Ou s/n"
+                    />
+                    <mat-error>{{ form.address.number().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field class="col-span-3 sm:col-span-2">
+                    <mat-label>Complemento</mat-label>
+                    <input
+                      matInput
+                      [formField]="form.address.complement"
+                      autocomplete="address-line2"
+                      placeholder="Opcional"
+                    />
+                    <mat-error>{{ form.address.complement().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field class="col-span-6 sm:col-span-4">
+                    <mat-label>Bairro</mat-label>
+                    <input matInput [formField]="form.address.neighborhood" autocomplete="off" />
+                    <mat-error>{{ form.address.neighborhood().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field class="col-span-6 sm:col-span-4">
+                    <mat-label>Cidade</mat-label>
+                    <input matInput [formField]="form.address.city" autocomplete="address-level2" />
+                    <mat-error>{{ form.address.city().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field class="col-span-6 sm:col-span-2">
+                    <mat-label>Estado</mat-label>
+                    <mat-select [formField]="form.address.state">
+                      @for (state of states; track state.uf) {
+                        <mat-option [value]="state.uf"
+                          >{{ state.uf }} · {{ state.name }}</mat-option
+                        >
+                      }
+                    </mat-select>
+                    <mat-error>{{ form.address.state().errors()[0]?.message }}</mat-error>
+                  </mat-form-field>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+              <button mat-flat-button type="submit">
+                Continuar para pagamento
+                <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+              </button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 2. Payment -->
+        <mat-step>
+          <ng-template matStepLabel>Pagamento</ng-template>
+
+          <div class="pt-2">
+            <h2 class="text-base font-semibold text-zinc-900">Forma de pagamento</h2>
+
+            <div class="mt-4 rounded-lg border-2 border-emerald-700 bg-emerald-50/60 p-4 sm:p-5">
+              <p class="flex items-center gap-2 font-semibold text-zinc-900">
+                <mat-icon class="text-emerald-700" aria-hidden="true">qr_code_2</mat-icon>
+                Pix
+                <span
+                  class="ml-auto inline-flex items-center gap-1 text-sm font-medium text-emerald-800"
+                >
+                  <mat-icon class="size-5! text-xl!" aria-hidden="true">check_circle</mat-icon>
+                  Selecionado
+                </span>
+              </p>
+              <p class="mt-2 text-sm text-zinc-700">
+                Depois de confirmar, mostramos o QR Code e o código copia e cola. Pague pelo app do
+                seu banco; o pedido é confirmado assim que o pagamento cair.
+              </p>
+            </div>
+
+            <div class="mt-6 flex flex-wrap justify-between gap-3">
+              <button mat-button matStepperPrevious type="button">
+                <mat-icon aria-hidden="true">arrow_back</mat-icon>
+                Voltar
+              </button>
+              <button mat-flat-button matStepperNext type="button">
+                Revisar pedido
+                <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-step>
+
+        <!-- 3. Review + confirm -->
+        <mat-step>
+          <ng-template matStepLabel>Revisão</ng-template>
+
+          @let data = model();
+          <div class="pt-2">
+            <h2 class="text-base font-semibold text-zinc-900">Confira antes de confirmar</h2>
+
+            <dl class="mt-4 divide-y divide-zinc-200 rounded-lg border border-zinc-200">
+              <div class="flex items-start justify-between gap-4 p-4">
+                <div class="min-w-0">
+                  <dt class="text-sm font-medium text-zinc-600">Contato</dt>
+                  <dd class="mt-1 text-sm text-zinc-900">
+                    {{ data.customer.name }}<br />
+                    <span class="break-all">{{ data.customer.email }}</span
+                    ><br />
+                    {{ data.customer.phone }} · CPF {{ data.customer.document }}
+                  </dd>
+                </div>
+                <button
+                  mat-button
+                  type="button"
+                  (click)="editStep(0)"
+                  aria-label="Alterar dados de contato"
+                >
+                  Alterar
+                </button>
+              </div>
+              <div class="flex items-start justify-between gap-4 p-4">
+                <div class="min-w-0">
+                  <dt class="text-sm font-medium text-zinc-600">Entrega</dt>
+                  <dd class="mt-1 text-sm text-zinc-900">
+                    {{ data.address.street }}, {{ data.address.number }}
+                    @if (data.address.complement) {
+                      — {{ data.address.complement }}
+                    }
+                    <br />
+                    {{ data.address.neighborhood }} · {{ data.address.city }}/{{ data.address.state
+                    }}<br />
+                    CEP {{ data.address.postal_code }}
+                  </dd>
+                </div>
+                <button
+                  mat-button
+                  type="button"
+                  (click)="editStep(0)"
+                  aria-label="Alterar endereço de entrega"
+                >
+                  Alterar
+                </button>
+              </div>
+              <div class="flex items-start justify-between gap-4 p-4">
+                <div>
+                  <dt class="text-sm font-medium text-zinc-600">Pagamento</dt>
+                  <dd class="mt-1 flex items-center gap-1.5 text-sm text-zinc-900">
+                    <mat-icon class="size-5! text-xl! text-emerald-700" aria-hidden="true"
+                      >qr_code_2</mat-icon
+                    >
+                    Pix · {{ currentCart.total.formatted }}
+                  </dd>
+                </div>
+                <button
+                  mat-button
+                  type="button"
+                  (click)="editStep(1)"
+                  aria-label="Alterar forma de pagamento"
+                >
+                  Alterar
+                </button>
+              </div>
+            </dl>
+
+            <div aria-live="assertive">
+              @if (checkout.problem(); as problem) {
+                @switch (problem.kind) {
+                  @case ('items') {
+                    <div
+                      class="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900"
+                      role="alert"
+                    >
+                      <p class="font-semibold">Alguns itens mudaram enquanto você comprava</p>
+                      <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @for (message of problem.messages; track message) {
+                          <li>{{ message }}</li>
+                        }
+                      </ul>
+                      <a mat-stroked-button routerLink="/cart" class="mt-4">Ajustar carrinho</a>
+                    </div>
+                  }
+                  @case ('cart') {
+                    <div
+                      class="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-900"
+                      role="alert"
+                    >
+                      <p>{{ problem.message }}</p>
+                      <a mat-stroked-button routerLink="/cart" class="mt-4">Ir para o carrinho</a>
+                    </div>
+                  }
+                  @case ('retry') {
+                    <div
+                      class="mt-6 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+                      role="alert"
+                    >
+                      <mat-icon class="shrink-0 text-amber-700" aria-hidden="true"
+                        >sync_problem</mat-icon
+                      >
+                      <p>{{ problem.message }}</p>
+                    </div>
+                  }
+                  @case ('fields') {
+                    @if (generalErrors().length > 0) {
+                      <div
+                        class="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900"
+                        role="alert"
+                      >
+                        @for (message of generalErrors(); track message) {
+                          <p>{{ message }}</p>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              }
+            </div>
+
+            <div
+              class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <button mat-button matStepperPrevious type="button" class="self-start">
+                <mat-icon aria-hidden="true">arrow_back</mat-icon>
+                Voltar
+              </button>
+              <button
+                mat-flat-button
+                type="button"
+                class="checkout-confirm"
+                [disabled]="checkout.placing() || cart.hasStockIssues() || cart.busy()"
+                [attr.aria-busy]="checkout.placing()"
+                (click)="placeOrder()"
+              >
+                @if (checkout.placing()) {
+                  <mat-spinner diameter="18" class="mr-2 inline-block" aria-hidden="true" />
+                  Confirmando…
+                } @else if (checkout.problem()?.kind === 'retry') {
+                  Tentar novamente
+                } @else {
+                  Confirmar e pagar {{ currentCart.total.formatted }}
+                }
+              </button>
+            </div>
+            <p class="mt-3 text-sm text-zinc-600 sm:text-right">
+              Os itens ficam reservados para você enquanto o código Pix estiver válido.
+            </p>
+          </div>
+        </mat-step>
+      </mat-stepper>
+
+      <app-checkout-summary [cart]="currentCart" class="lg:sticky lg:top-24" />
+    </div>
+  }
+</div>

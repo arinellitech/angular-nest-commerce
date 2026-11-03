@@ -136,6 +136,11 @@ export const CartStore = signalStore(
       removeCoupon(): Promise<CartResult> {
         return run(() => api.removeCoupon());
       },
+
+      /** After checkout: the cart became an order, its token is useless. */
+      clear(): void {
+        forget();
+      },
     };
   }),
 );

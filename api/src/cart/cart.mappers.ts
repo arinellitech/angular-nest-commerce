@@ -12,6 +12,7 @@ import {
   imageUrl,
   type ProductImageResource,
 } from '../catalog/catalog.mappers.js';
+import { isPublished } from '../catalog/published.js';
 import { computeCartTotals } from './cart.rules.js';
 
 /** Resource shapes — mirror storefront/src/app/core/api/types.ts and docs/api.md. */
@@ -58,15 +59,6 @@ export interface ShippingRates {
   freeOverCents: number;
 }
 
-function isPurchasable(product: Product, at: Date): boolean {
-  return (
-    product.isActive &&
-    product.deletedAt === null &&
-    product.publishedAt !== null &&
-    product.publishedAt <= at
-  );
-}
-
 export function toCartResource(
   cart: CartWithRelations,
   shipping: ShippingRates,
@@ -102,7 +94,7 @@ export function toCartResource(
       quantity: item.quantity,
       unit_price: money(item.unitPriceCents),
       total: money(item.quantity * item.unitPriceCents),
-      available_quantity: isPurchasable(item.product, at)
+      available_quantity: isPublished(item.product, at)
         ? availableQuantity(item.product.inventory)
         : 0,
     })),

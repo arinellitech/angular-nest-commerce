@@ -108,6 +108,26 @@ body {
   border-top: 1px solid #e4e4e7;
 }
 
+/* Checkout stepper: line the step icons and content up with the page grid. */
+.checkout-stepper {
+  --mat-stepper-container-color: transparent;
+}
+.checkout-stepper .mat-horizontal-stepper-header-container {
+  margin-inline: -24px;
+}
+.checkout-stepper .mat-horizontal-content-container {
+  padding: 0 0 24px;
+}
+.checkout-stepper .mat-vertical-stepper-header {
+  padding-inline: 0;
+}
+.checkout-stepper .mat-vertical-content-container {
+  margin-left: 12px;
+}
+.checkout-stepper .mat-vertical-content {
+  padding-right: 0;
+}
+
 /* Material Symbols (icon font linked in index.html) */
 .material-symbols-outlined {
   font-variation-settings:
