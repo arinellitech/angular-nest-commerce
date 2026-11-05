@@ -242,6 +242,12 @@ Finalize com /ship 10 "polimento de portfólio".
 
 ---
 
+## Redesign do storefront (R1–R7)
+
+Sequência paralela só de UI/UX, em [`docs/redesign/`](docs/redesign/README.md): shell da loja (menu mobile, mini-cart, footer), home como vitrine, PDP completa, catálogo com favoritos, carrinho/checkout de loja, pós-compra + páginas institucionais, dark mode/PWA/Lighthouse. Cada arquivo traz o prompt, o modelo e o esforço sugeridos. Encaixe recomendado: depois do PROMPT 04 e antes do 05 (ver o README da pasta).
+
+---
+
 ## Prompts utilitários (use quando precisar)
 
 - `/review` — revisão read-only das mudanças atuais antes de commitar.
